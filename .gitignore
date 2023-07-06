@@ -1,4 +1,4 @@
-./data/entry/*
-./data/project/*
+data/entry/*
+data/project/*
 project_list.csv
 worker_quality.csv
