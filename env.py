@@ -4,7 +4,7 @@ import random
 from utils import to_onehot
 
 class WorkerEnv(object):
-    def __init__(self) -> None:
+    def __init__(self, config) -> None:
         with open('./data/env_data.pickle', 'rb') as f:
             data = pickle.load(f)
         (
@@ -35,6 +35,7 @@ class WorkerEnv(object):
         self.worker_pos = 0
         self.worker_answer_history_dict = {} # worker的回答历史
         self.project_answer_count = torch.zeros(self.project_num) # 当前项目回答的数量
+        self.max_history_len = config["max_history_len"]
 
     def reset(self):
         self.worker_pos = 0
@@ -117,6 +118,8 @@ class WorkerEnv(object):
         for p_id in self.worker_answer_history_dict[worker_id]:
             p_index = self.project_id2index_dict[p_id]
             worker_history.append((self.project_discrete_vector[p_index], self.project_continuous_vector[p_index]))
+        if len(worker_history) > self.max_history_len:
+            worker_history = worker_history[-50:]
         return worker_history, action_list
 
 
