@@ -40,6 +40,18 @@ class WorkerEnv(object):
         self.worker_pos = 0
         self.worker_answer_history_dict = {}
         self.project_answer_count = torch.zeros(self.project_num)
+        done = False
+        obs = None
+        while not done:
+            if self.worker_pos == len(self.worker_list):
+                done = True
+            if not done:
+                obs = self._obs()
+                worker_history, action_list = obs
+                if len(action_list) > 0:
+                    break
+                self.worker_pos += 1
+        return obs, done
 
     def step(self, action:int):
         """
@@ -68,11 +80,16 @@ class WorkerEnv(object):
         self.worker_pos += 1
 
         done = False
-        if self.worker_pos == len(self.worker_list):
-            done = True
         obs = None
-        if not done:
-            obs = self._obs()
+        while not done:
+            if self.worker_pos == len(self.worker_list):
+                done = True
+            if not done:
+                obs = self._obs()
+                worker_history, action_list = obs
+                if len(action_list) > 0:
+                    break
+                self.worker_pos += 1
         return obs, reward, done
     
     def _obs(self):
