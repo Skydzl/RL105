@@ -26,6 +26,7 @@ class WorkerAgent(nn.Module):
         if len(worker_history) == 0 or np.random.random() < self.epsilon:
             res_action = random.choice(action_list)
         else:
+            res_action = None
             max_q_value = 0.
             for action in action_list:
                 project_index, discrete, continuous = action
@@ -33,6 +34,8 @@ class WorkerAgent(nn.Module):
                 if q_value > max_q_value:
                     res_action = action
                     max_q_value = q_value
+            if res_action is None:
+                res_action = random.choice(action_list)
         return res_action
     
     def update(self, transitions):
