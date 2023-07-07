@@ -1,4 +1,5 @@
 import collections
+import deuqe
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -20,6 +21,26 @@ class ReplayBuffer:
 
     def size(self):  # 目前buffer中数据的数量
         return len(self.buffer)
+    
+    
+class MemoryQueue:
+    "策略梯度用的 经验回放池"
+    def __init__(self):
+        self.buffer = collections.deque()
+    
+    def push(self, transitions):
+        self.buffer.append(transitions)
+        
+    def sample(self):
+        batch = list(self.buffer)
+        return zip(*batch)
+    
+    def clear(self):
+        self.buffer.clear()
+        
+    def __len__(self):
+        return len(self.buffer)
+    
     
 def moving_average(a, window_size):
     cumulative_sum = np.cumsum(np.insert(a, 0, 0)) 

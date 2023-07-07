@@ -48,12 +48,14 @@ class Qnet(nn.Module):
 
 class PolicyNet(nn.Module):
     "策略网络（全连接网络）"
-    def __init__(self, input_dim, output_dim, hidden_dim=128):
+    def __init__(self, len_category, len_sub_category, len_industry, dim):
         """ 初始化策略网络，为全连接网络
             input_dim: 输入的特征数即环境的状态维度
             output_dim: 输出的动作维度
         """
         super(PolicyNet, self).__init__()
+        self.project_encoder = ProjectEncoder(len_category, len_sub_category, len_industry, dim)
+
         self.fc1 = nn.Linear(input_dim, hidden_dim)  # 输入层
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)  # 隐藏层
         self.fc3 = nn.Linear(hidden_dim, output_dim)  # 输出层
@@ -63,3 +65,4 @@ class PolicyNet(nn.Module):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         return torch.sigmoid(self.fc3(x))
+    
