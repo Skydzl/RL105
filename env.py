@@ -53,13 +53,14 @@ class WorkerEnv(object):
                 self.worker_pos += 1
         return obs, done
 
-    def step(self, action:int):
+    def step(self, action):
         """
         action: 分配的项目index
         """
-        assert 0 <= action < self.project_num
-        self.project_answer_count[action] += 1
-        project_id = self.project_index2id_dict[action] # 记录该project的回答次数++
+        project_index, discrete, continuous = action
+        assert 0 <= project_index < self.project_num
+        self.project_answer_count[project_index] += 1
+        project_id = self.project_index2id_dict[project_index] # 记录该project的回答次数++
         worker_id = self.worker_list[self.worker_pos]
         
         if worker_id not in self.worker_answer_history_dict:
