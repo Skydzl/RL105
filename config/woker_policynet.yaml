@@ -1,0 +1,1 @@
+env_name: 'PolicyAgent'alg: 'PolicyGradient'epochs: 100ep_max_steps: 10update_fre: 5

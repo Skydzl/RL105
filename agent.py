@@ -61,25 +61,8 @@ class WorkerAgent(nn.Module):
             )
         self.count += 1
 
-class MemoryQueue:
-    def __init__(self):
-        self.buffer = deque()
-    
-    def push(self, transitions):
-        self.buffer.append(transitions)
-        
-    def sample(self):
-        batch = list(self.buffer)
-        return zip(*batch)
-    
-    def clear(self):
-        self.buffer.clear()
-        
-    def __len__(self):
-        return len(self.buffer)
 
-
-class PolicyGradient:
+class PolicyGradientAgent:
     "PolicyGradient智能体对象"
     def __init__(self, memory, config):
         self.gamma = config.gamma
@@ -127,3 +110,9 @@ class PolicyGradient:
             loss.backward()
         self.optimizer.step()
         self.memory.clear()
+        
+        def save_model(self, path):
+            torch.save(self.policy_net, path+'policy_net.pth')
+            
+        def load_model(self, path):
+            self.policy_net = torch.load(path+'policy_net.pth')
