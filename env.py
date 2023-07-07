@@ -96,6 +96,8 @@ class WorkerEnv(object):
         worker_id = self.worker_list[self.worker_pos]
         worker_time = self.worker_time_list[self.worker_pos]
         action_list = list()
+        if worker_id not in self.worker_answer_history_dict:
+            self.worker_answer_history_dict[worker_id] = list()
         for project_id, p_info in self.project_info.items():
             project_index = self.project_id2index_dict[project_id]
             if p_info["start_date"] > worker_time or p_info["deadline"] < worker_time: # 时间不符合
@@ -117,6 +119,6 @@ class WorkerEnv(object):
         return worker_history, action_list
 
 
-        
-
+if __name__ == "__main__":
+    wkenv = WorkerEnv()
         
