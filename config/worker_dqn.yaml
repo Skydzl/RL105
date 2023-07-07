@@ -2,11 +2,13 @@ seed: 42
 buffer_size: 10000
 batch_size: 32
 learning_rate: 0.0001
+
+num_episodes: 500
+update: 100
 target_update: 10
+
 gamma: 0.95
 epsilon: 0.03
-num_episodes: 500
-minimal_size: 100
 len_category: 7
 len_sub_category: 29
 len_industry: 37

@@ -27,10 +27,11 @@ def train():
                 while not done:
                     action = agent.take_action(state)
                     next_state, reward, done = env.step(action)
+                    worker_history, action_list = state
                     replay_buffer.add(state, action, reward, next_state, done)
                     state = next_state
                     episode_return += reward
-                    if replay_buffer.size() > config["minimal_size"]:
+                    if replay_buffer.cnt % config["update"] == 0:
                         transitions = replay_buffer.sample(config["batch_size"])
                         agent.update(transitions)
                 return_list.append(episode_return)

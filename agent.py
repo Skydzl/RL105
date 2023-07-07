@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,30 +19,31 @@ class WorkerAgent(nn.Module):
     
     def take_action(self, state):
         worker_history, action_list = state
-        project_index_list = [project_index for project_index, discrete, continuous in action_list]
+        # project_index_list = [project_index for project_index, discrete, continuous in action_list]
         if len(worker_history) == 0 or np.random.random() < self.epsilon:
-            action = np.random.choice(project_index_list)
+            res_action = random.choice(action_list)
         else:
             max_q_value = 0.
-            for project_index, discrete, continuous in action_list:
+            for action in action_list:
+                project_index, discrete, continuous = action
                 q_value = self.q_net(worker_history, (discrete, continuous))
                 if q_value > max_q_value:
-                    action = project_index
+                    res_action = action
                     max_q_value = q_value
-        return action
+        return res_action
     
     def update(self, transitions):
         loss_list = list()
         for state, action, reward, next_state, done in transitions:
             worker_history, action_list = state
-            discrete, continuous = action
+            project_index, discrete, continuous = action
             next_worker_history, next_action_list = next_state
 
             q_values = self.q_net(worker_history, (discrete, continuous))
             max_next_q_values = max([self.target_q_net(next_worker_history, (next_discrete, next_continuous))
                                 for next_project_index, next_discrete, next_continuous in next_action_list])
             q_target = reward + self.gamma * max_next_q_values * (1 - done)
-            loss_list.append(F.mse_loss(q_values, q_target))
+            loss_list.append(F.mse_loss(q_values, q_target.detach()).view(-1))
         dqn_loss = torch.mean(torch.cat(loss_list, dim=-1), dim=-1)
         self.opt.zero_grad()
         dqn_loss.backward()
