@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from agent import WorkerAgent
 from env import WorkerEnv
-from utils import ReplayBuffer, moving_average, plot_return_curve
+from utils import ReplayBuffer, moving_average, plot_reward_curve, plot_loss_curve
 
 def train():
     with open("./config/worker_dqn.yaml", "rb") as f:
@@ -19,6 +19,7 @@ def train():
     env = WorkerEnv(config)
     agent = WorkerAgent(config)
     return_list = []
+    loss_list = []
     episode_return = 0
     state, done = env.reset()
     # while not done:
@@ -30,12 +31,15 @@ def train():
         episode_return += reward
         if replay_buffer.cnt % config["update"] == 0:
             transitions = replay_buffer.sample(config["batch_size"])
-            agent.update(transitions)
+            loss = agent.update(transitions)
+            loss_list.append(loss)
             return_list.append(episode_return)
             episode_return = 0
+        # if replay_buffer.cnt == 1000:
+        #     break
         if done:
             break
-    return return_list
+    return return_list, loss_list
 
 def random_train():
     with open("./config/worker_dqn.yaml", "rb") as f:
@@ -49,7 +53,7 @@ def random_train():
     episode_return = 0
     state, done = env.reset()
     # while not done:
-    for i in range(tqdm(len(env.worker_list))):
+    for i in tqdm(range(len(env.worker_list))):
         worker_history, action_list = state
         action = random.choice(action_list)
         next_state, reward, done = env.step(action)
@@ -61,7 +65,7 @@ def random_train():
             # agent.update(transitions)
             return_list.append(episode_return)
             episode_return = 0
-        # if replay_buffer.cnt == 10000:
+        # if replay_buffer.cnt == 1000:
         #     break
         if done:
             break
@@ -106,7 +110,8 @@ def random_train():
 
 
 if __name__ == "__main__":
-    return_list = train()
-    # return_list = random_train()
+    return_list, loss_list = train()
+    random_list = random_train()
     # print(return_list)
-    plot_return_curve(return_list, "Worker")
+    plot_reward_curve(return_list, random_list, "DQN on Worker")
+    plot_loss_curve(loss_list, 'DQN on Worker')

@@ -49,6 +49,9 @@ class WorkerAgent(nn.Module):
             max_next_q_values = max([self.target_q_net(next_worker_history, (next_discrete, next_continuous))
                                 for next_project_index, next_discrete, next_continuous in next_action_list])
             q_target = reward + self.gamma * max_next_q_values * (1 - done)
+            # print('q_values:', q_values)
+            # print('max_next_q_values:', max_next_q_values)
+            # print('q_target:', q_target)
             loss_list.append(F.mse_loss(q_values, q_target.detach()).view(-1))
         dqn_loss = torch.mean(torch.cat(loss_list, dim=-1), dim=-1)
         self.opt.zero_grad()
@@ -60,6 +63,7 @@ class WorkerAgent(nn.Module):
                 self.q_net.state_dict()
             )
         self.count += 1
+        return dqn_loss.item()
 
 
 class PolicyGradientAgent:

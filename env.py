@@ -55,9 +55,6 @@ class WorkerEnv(object):
         return obs, done
 
     def step(self, action):
-        """
-        action: 分配的项目index
-        """
         project_index, discrete, continuous = action
         assert 0 <= project_index < self.project_num
         self.project_answer_count[project_index] += 1
@@ -66,11 +63,10 @@ class WorkerEnv(object):
         
         if worker_id not in self.worker_answer_history_dict:
             self.worker_answer_history_dict[worker_id] = []
-        self.worker_answer_history_dict[worker_id].append(project_id) # 记录当前worker已经回答了该project
-        
         reward = 0
         if worker_id in self.answer_info[project_id]:
             # 当前worker真实回答了该project
+            self.worker_answer_history_dict[worker_id].append(project_id) # 记录当前worker已经回答了该project
             reward += 1
             if self.answer_info[project_id][worker_id]["finalist"] == True:
                 # 当前worker的真实回答finalist
