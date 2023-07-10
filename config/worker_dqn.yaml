@@ -3,17 +3,17 @@ buffer_size: 1000
 batch_size: 32
 learning_rate: 0.0001
 
-num_episodes: 1
+num_episodes: 10
 # num_iterations:
-update_frequency: 32
+update_frequency: 50
 target_update: 10
 
 max_history_len: 50
-true_history_len: 50000
+true_history_len: 190000
 
 gamma: 0.95
 epsilon: 0.01
 len_category: 7
 len_sub_category: 29
 len_industry: 37
-dim: 50
+dim: 30

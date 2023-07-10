@@ -1,3 +1,4 @@
+import copy
 import pickle 
 import torch
 import random
@@ -38,30 +39,43 @@ class WorkerEnv(object):
         self.max_history_len = config["max_history_len"]
         self.true_history_len = config["true_history_len"]
 
+        # 保存初始化状态
+        self.init_worker_pos = None
+        self.init_worker_answer_history_dict = None
+        self.init_project_answer_count = None
+
     def reset(self):
         self.worker_pos = 0
         self.worker_answer_history_dict = {}
         self.project_answer_count = torch.zeros(self.project_num)
 
-        while self.worker_pos < self.true_history_len:
-            worker_id = self.worker_list[self.worker_pos]
-            worker_time = self.worker_time_list[self.worker_pos]
-            if worker_id not in self.worker_answer_history_dict:
-                self.worker_answer_history_dict[worker_id] = []
-            for project_id, p_info in self.project_info.items():
-                project_index = self.project_id2index_dict[project_id]
-                if p_info["start_date"] > worker_time or p_info["deadline"] < worker_time: # 时间不符合
-                    continue
-                if project_id in self.worker_answer_history_dict[worker_id]: # 已经回答过了
-                    continue
-                if self.project_answer_count[project_index] == p_info["entry_count"]: # project回答数量已满
-                    continue
-                if worker_id not in self.answer_info[project_id]:
-                    continue
-                self.worker_answer_history_dict[worker_id].append(project_id)
-                self.project_answer_count[project_index] += 1
-            self.worker_pos += 1
-        
+        if self.init_worker_pos is None:
+            while self.worker_pos < self.true_history_len:
+                worker_id = self.worker_list[self.worker_pos]
+                worker_time = self.worker_time_list[self.worker_pos]
+                if worker_id not in self.worker_answer_history_dict:
+                    self.worker_answer_history_dict[worker_id] = []
+                for project_id, p_info in self.project_info.items():
+                    project_index = self.project_id2index_dict[project_id]
+                    if p_info["start_date"] > worker_time or p_info["deadline"] < worker_time: # 时间不符合
+                        continue
+                    if project_id in self.worker_answer_history_dict[worker_id]: # 已经回答过了
+                        continue
+                    if self.project_answer_count[project_index] == p_info["entry_count"]: # project回答数量已满
+                        continue
+                    if worker_id not in self.answer_info[project_id]:
+                        continue
+                    self.worker_answer_history_dict[worker_id].append(project_id)
+                    self.project_answer_count[project_index] += 1
+                self.worker_pos += 1
+            self.init_worker_pos = copy.deepcopy(self.worker_pos)
+            self.init_worker_answer_history_dict = copy.deepcopy(self.worker_answer_history_dict)
+            self.init_project_answer_count = copy.deepcopy(self.project_answer_count)
+        else:
+            self.worker_pos = copy.deepcopy(self.init_worker_pos)
+            self.worker_answer_history_dict = copy.deepcopy(self.init_worker_answer_history_dict)
+            self.project_answer_count = copy.deepcopy(self.init_project_answer_count)
+
         done = False
         obs = None
         while not done:
@@ -84,7 +98,7 @@ class WorkerEnv(object):
         
         if worker_id not in self.worker_answer_history_dict:
             self.worker_answer_history_dict[worker_id] = []
-        reward = -1
+        reward = 0
         if worker_id in self.answer_info[project_id]:
             # 当前worker真实回答了该project
             self.worker_answer_history_dict[worker_id].append(project_id) # 记录当前worker已经回答了该project

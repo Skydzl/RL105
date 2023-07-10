@@ -118,8 +118,7 @@ if __name__ == "__main__":
     return_list, loss_list = train()
     random_list = random_train()
     result_list = return_list, random_list, loss_list
-    # np.save('./result/DQN_Worker_return_list.npy', return_list)
-    with open("./result/DQN_Worker_result_list.pickle", "wb") as fp:
+    with open("./result/DQN_Worker_result_list_his_190000.pickle", "wb") as fp:
         pickle.dump(result_list, fp)
     # print(return_list)
     plot_reward_curve(return_list, random_list, "DQN on Worker")
