@@ -36,6 +36,7 @@ class Config:
 
 def train(config, env, agent):
     start_time = time.time()
+    loss_list = []
     print(f"环境名：{config.env_name}, 算法名：{config.alg}")
     print("开始训练智能体......")
     # 记录每个epoch的奖励
@@ -50,7 +51,6 @@ def train(config, env, agent):
             action = agent.sample_action(state)
             # 执行动作，获取下一个状态、奖励和结束状态
             next_state, reward, done = env.step(action)
-            '这里不需要乘gamma么？'
             ep_reward += reward 
             # 如果回合结束，则奖励为0
             if done:
@@ -61,7 +61,7 @@ def train(config, env, agent):
             state = next_state
             if done:
                 break
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % 1 == 0:
             print(f"Epochs：{epoch + 1}/{config.epochs}, Reward:{ep_reward:.2f}")
         # 每采样几个回合就对智能体做一次更新
         if (epoch + 1) % config.update_fre == 0:
@@ -106,8 +106,10 @@ def random_train(config, env, agent):
 
 if __name__ == "__main__":
     config = Config()
+    with open("./config/worker_dqn.yaml", "rb") as f:
+        env_config = yaml.load(f, Loader=yaml.FullLoader)
     memory = MemoryQueue()
-    env = WorkerEnv()
+    env = WorkerEnv(env_config)
     agent = PolicyGradientAgent(memory, config)
     result, loss_list = train(config, env, agent)
     random_result = random_train(config, env, agent)

@@ -84,7 +84,7 @@ class WorkerEnv(object):
         
         if worker_id not in self.worker_answer_history_dict:
             self.worker_answer_history_dict[worker_id] = []
-        reward = -1
+        reward = 0
         if worker_id in self.answer_info[project_id]:
             # 当前worker真实回答了该project
             self.worker_answer_history_dict[worker_id].append(project_id) # 记录当前worker已经回答了该project
