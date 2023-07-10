@@ -63,8 +63,8 @@ def plot_reward_curve(return_list, random_list, env_name):
     plt.legend()
     plt.show()
 
-    mv_return = moving_average(return_list, 9)
-    mv_random = moving_average(random_list, 9)
+    mv_return = moving_average(return_list, 99)
+    mv_random = moving_average(random_list, 99)
     plt.plot(iterations, mv_return, color='b', label='DQN')
     plt.plot(random_iterations, mv_random, color='r', label='RANDOM')
     plt.xlabel('Iterations')
@@ -81,7 +81,7 @@ def plot_loss_curve(loss_list, env_name):
     plt.title('{} Loss'.format(env_name))
     plt.show()
 
-    mv_loss = moving_average(loss_list, 9)
+    mv_loss = moving_average(loss_list, 99)
     plt.plot(iterations, mv_loss)
     plt.xlabel('Iterations')
     plt.ylabel('Loss')

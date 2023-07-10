@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 import random
 import torch
 import yaml
@@ -20,25 +21,28 @@ def train():
     agent = WorkerAgent(config)
     return_list = []
     loss_list = []
-    episode_return = 0
-    state, done = env.reset()
-    # while not done:
-    for i in tqdm(range(len(env.worker_list))):
-        action = agent.take_action(state)
-        next_state, reward, done = env.step(action)
-        replay_buffer.add(state, action, reward, next_state, done)
-        state = next_state
-        episode_return += reward
-        if replay_buffer.cnt % config["update"] == 0:
-            transitions = replay_buffer.sample(config["batch_size"])
-            loss = agent.update(transitions)
-            loss_list.append(loss)
-            return_list.append(episode_return)
-            episode_return = 0
-        # if replay_buffer.cnt == 1000:
-        #     break
-        if done:
-            break
+
+    # with tqdm(total=int(config["num_episodes"]), desc='Iteration %d' % i) as pbar:
+    for episode in range(config["num_episodes"]):
+        iteration_return = 0
+        state, done = env.reset()
+        # while not done:
+        for i in tqdm(range(len(env.worker_list) - config["true_history_len"])):
+            action = agent.take_action(state)
+            next_state, reward, done = env.step(action)
+            replay_buffer.add(state, action, reward, next_state, done)
+            state = next_state
+            iteration_return += reward
+            if replay_buffer.cnt % config["update_frequency"] == 0:
+                transitions = replay_buffer.sample(config["batch_size"])
+                loss = agent.update(transitions)
+                loss_list.append(loss)
+                return_list.append(iteration_return)
+                iteration_return = 0
+            # if replay_buffer.cnt == 10000:
+            #     break
+            if done:
+                break
     return return_list, loss_list
 
 def random_train():
@@ -50,25 +54,26 @@ def random_train():
     replay_buffer = ReplayBuffer(config["buffer_size"])
     env = WorkerEnv(config)
     return_list = []
-    episode_return = 0
-    state, done = env.reset()
-    # while not done:
-    for i in tqdm(range(len(env.worker_list))):
-        worker_history, action_list = state
-        action = random.choice(action_list)
-        next_state, reward, done = env.step(action)
-        replay_buffer.add(state, action, reward, next_state, done)
-        state = next_state
-        episode_return += reward
-        if replay_buffer.cnt % config["update"] == 0:
-            # transitions = replay_buffer.sample(config["batch_size"])
-            # agent.update(transitions)
-            return_list.append(episode_return)
-            episode_return = 0
-        # if replay_buffer.cnt == 1000:
-        #     break
-        if done:
-            break
+    for episode in range(config["num_episodes"]):
+        iteration_return = 0
+        state, done = env.reset()
+        # while not done:
+        for i in tqdm(range(len(env.worker_list) - config["true_history_len"])):
+            worker_history, action_list = state
+            action = random.choice(action_list)
+            next_state, reward, done = env.step(action)
+            replay_buffer.add(state, action, reward, next_state, done)
+            state = next_state
+            iteration_return += reward
+            if replay_buffer.cnt % config["update_frequency"] == 0:
+                # transitions = replay_buffer.sample(config["batch_size"])
+                # agent.update(transitions)
+                return_list.append(iteration_return)
+                iteration_return = 0
+            # if replay_buffer.cnt == 10000:
+            #     break
+            if done:
+                break
     return return_list
 
 # def train():
@@ -112,6 +117,10 @@ def random_train():
 if __name__ == "__main__":
     return_list, loss_list = train()
     random_list = random_train()
+    result_list = return_list, random_list, loss_list
+    # np.save('./result/DQN_Worker_return_list.npy', return_list)
+    with open("./result/DQN_Worker_result_list.pickle", "wb") as fp:
+        pickle.dump(result_list, fp)
     # print(return_list)
     plot_reward_curve(return_list, random_list, "DQN on Worker")
     plot_loss_curve(loss_list, 'DQN on Worker')

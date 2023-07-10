@@ -15,15 +15,15 @@ class WorkerAgent(nn.Module):
         self.q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"])
         self.target_q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"])
         self.opt = torch.optim.Adam(self.q_net.parameters(), lr=config["learning_rate"])
+        self.count = 0
         self.gamma = config["gamma"]
         self.epsilon = config["epsilon"]
         self.target_update = config["target_update"]
-        self.count = 0
     
     def take_action(self, state):
         worker_history, action_list = state
         # project_index_list = [project_index for project_index, discrete, continuous in action_list]
-        if len(worker_history) == 0 or np.random.random() < self.epsilon:
+        if np.random.random() < self.epsilon + 1.0 / (self.count / 10 + 1.5):
             res_action = random.choice(action_list)
         else:
             res_action = None

@@ -36,11 +36,32 @@ class WorkerEnv(object):
         self.worker_answer_history_dict = {} # worker的回答历史
         self.project_answer_count = torch.zeros(self.project_num) # 当前项目回答的数量
         self.max_history_len = config["max_history_len"]
+        self.true_history_len = config["true_history_len"]
 
     def reset(self):
         self.worker_pos = 0
         self.worker_answer_history_dict = {}
         self.project_answer_count = torch.zeros(self.project_num)
+
+        while self.worker_pos < self.true_history_len:
+            worker_id = self.worker_list[self.worker_pos]
+            worker_time = self.worker_time_list[self.worker_pos]
+            if worker_id not in self.worker_answer_history_dict:
+                self.worker_answer_history_dict[worker_id] = []
+            for project_id, p_info in self.project_info.items():
+                project_index = self.project_id2index_dict[project_id]
+                if p_info["start_date"] > worker_time or p_info["deadline"] < worker_time: # 时间不符合
+                    continue
+                if project_id in self.worker_answer_history_dict[worker_id]: # 已经回答过了
+                    continue
+                if self.project_answer_count[project_index] == p_info["entry_count"]: # project回答数量已满
+                    continue
+                if worker_id not in self.answer_info[project_id]:
+                    continue
+                self.worker_answer_history_dict[worker_id].append(project_id)
+                self.project_answer_count[project_index] += 1
+            self.worker_pos += 1
+        
         done = False
         obs = None
         while not done:
@@ -63,17 +84,17 @@ class WorkerEnv(object):
         
         if worker_id not in self.worker_answer_history_dict:
             self.worker_answer_history_dict[worker_id] = []
-        reward = 0
+        reward = -1
         if worker_id in self.answer_info[project_id]:
             # 当前worker真实回答了该project
             self.worker_answer_history_dict[worker_id].append(project_id) # 记录当前worker已经回答了该project
-            reward += 1
+            reward = 1
             if self.answer_info[project_id][worker_id]["finalist"] == True:
                 # 当前worker的真实回答finalist
-                reward += 1
+                reward = 3
                 if self.answer_info[project_id][worker_id]["winner"] == True:
                     # 当前worker的真实回答是winner
-                    reward += 1
+                    reward = 5
         
         self.worker_pos += 1
 
@@ -111,11 +132,14 @@ class WorkerEnv(object):
             )
             action_list.append(action)
         worker_history = list()
-        for p_id in self.worker_answer_history_dict[worker_id]:
-            p_index = self.project_id2index_dict[p_id]
-            worker_history.append((self.project_discrete_vector[p_index], self.project_continuous_vector[p_index]))
-        if len(worker_history) > self.max_history_len:
-            worker_history = worker_history[-50:]
+        if len(self.worker_answer_history_dict[worker_id]) > self.max_history_len:
+            for p_id in self.worker_answer_history_dict[worker_id][-self.max_history_len:]:
+                p_index = self.project_id2index_dict[p_id]
+                worker_history.append((self.project_discrete_vector[p_index], self.project_continuous_vector[p_index]))
+        else:
+            for p_id in self.worker_answer_history_dict[worker_id]:
+                p_index = self.project_id2index_dict[p_id]
+                worker_history.append((self.project_discrete_vector[p_index], self.project_continuous_vector[p_index]))
         return worker_history, action_list
 
 
