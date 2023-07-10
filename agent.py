@@ -15,17 +15,18 @@ class WorkerAgent(nn.Module):
         self.q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"])
         self.target_q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"])
         self.opt = torch.optim.Adam(self.q_net.parameters(), lr=config["learning_rate"])
+        self.count = 0
         self.gamma = config["gamma"]
         self.epsilon = config["epsilon"]
         self.target_update = config["target_update"]
-        self.count = 0
     
     def take_action(self, state):
         worker_history, action_list = state
         # project_index_list = [project_index for project_index, discrete, continuous in action_list]
-        if len(worker_history) == 0 or np.random.random() < self.epsilon:
+        if np.random.random() < self.epsilon + 1.0 / (self.count / 10 + 1.5):
             res_action = random.choice(action_list)
         else:
+            res_action = None
             max_q_value = 0.
             for action in action_list:
                 project_index, discrete, continuous = action
@@ -33,6 +34,8 @@ class WorkerAgent(nn.Module):
                 if q_value > max_q_value:
                     res_action = action
                     max_q_value = q_value
+            if res_action is None:
+                res_action = random.choice(action_list)
         return res_action
     
     def update(self, transitions):
@@ -46,6 +49,9 @@ class WorkerAgent(nn.Module):
             max_next_q_values = max([self.target_q_net(next_worker_history, (next_discrete, next_continuous))
                                 for next_project_index, next_discrete, next_continuous in next_action_list])
             q_target = reward + self.gamma * max_next_q_values * (1 - done)
+            # print('q_values:', q_values)
+            # print('max_next_q_values:', max_next_q_values)
+            # print('q_target:', q_target)
             loss_list.append(F.mse_loss(q_values, q_target.detach()).view(-1))
         dqn_loss = torch.mean(torch.cat(loss_list, dim=-1), dim=-1)
         self.opt.zero_grad()
@@ -57,6 +63,7 @@ class WorkerAgent(nn.Module):
                 self.q_net.state_dict()
             )
         self.count += 1
+        return dqn_loss.item()
 
 
 class PolicyGradientAgent:

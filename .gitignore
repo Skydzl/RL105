@@ -1,5 +1,7 @@
 data/entry/*
 data/project/*
+result/*
 project_list.csv
 worker_quality.csv
 __pycache__
+plot.ipynb

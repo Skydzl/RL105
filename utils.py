@@ -54,21 +54,49 @@ def moving_average(a, window_size):
     return np.concatenate((begin, middle, end))
 
 
-def plot_return_curve(return_list, env_name):
-    episodes_list = list(range(len(return_list)))
-    plt.plot(episodes_list, return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.title('DQN on {}'.format(env_name))
+def plot_reward_curve(return_list, random_list, env_name):
+    iterations = list(range(len(return_list)))
+    random_iterations = list(range(len(random_list)))
+    plt.plot(iterations, return_list, color='b', label='DQN')
+    plt.plot(random_iterations, random_list, color='r', label='RANDOM')
+    plt.xlabel('Iterations')
+    plt.ylabel('Rewards')
+    plt.title('{} Rewards'.format(env_name))
+    plt.legend()
     plt.show()
 
-    mv_return = moving_average(return_list, 9)
-    plt.plot(episodes_list, mv_return)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.title('DQN on {}'.format(env_name))
+    mv_return = moving_average(return_list, 99)
+    mv_random = moving_average(random_list, 99)
+    plt.plot(iterations, mv_return, color='b', label='DQN')
+    plt.plot(random_iterations, mv_random, color='r', label='RANDOM')
+    plt.xlabel('Iterations')
+    plt.ylabel('Rewards')
+    plt.title('{} Rewards (moving average)'.format(env_name))
+    plt.legend()
     plt.show()
     
+
+def plot_loss_curve(loss_list, env_name):
+    iterations = list(range(len(loss_list)))
+    plt.plot(iterations, loss_list)
+    plt.xlabel('Iterations')
+    plt.ylabel('Loss')
+    plt.title('{} Loss'.format(env_name))
+    plt.show()
+
+    mv_loss = moving_average(loss_list, 99)
+    plt.plot(iterations, mv_loss)
+    plt.xlabel('Iterations')
+    plt.ylabel('Loss')
+    plt.title('{} Loss (moving average)'.format(env_name))
+    plt.show()
+
+def model_init(model):
+    for layer in model.modules():
+        if isinstance(layer, torch.nn.Linear):
+            torch.nn.init.xavier_normal_(layer.weight)
+            if layer.bias is not None:
+                torch.nn.init.constant_(layer.bias, val=0.0)
 
 def to_onehot(index, length: int, device):
     if type(index) in [int, np.ndarray]:
