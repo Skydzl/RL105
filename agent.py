@@ -116,6 +116,7 @@ class PolicyGradientAgent:
             loss.backward()
         self.optimizer.step()
         self.memory.clear()
+        return loss.detach()
         
         def save_model(self, path):
             torch.save(self.policy_net, path+'policy_net.pth')

@@ -7,10 +7,12 @@ Created on Fri Jul  7 11:13:12 2023
 """
 import time
 import yaml
+import random
 
 from agent import PolicyGradientAgent
 from utils import MemoryQueue
 from env import WorkerEnv
+from utils import plot_reward_curve, plot_loss_curve
 
 
 class Config:
@@ -63,15 +65,51 @@ def train(config, env, agent):
             print(f"Epochs：{epoch + 1}/{config.epochs}, Reward:{ep_reward:.2f}")
         # 每采样几个回合就对智能体做一次更新
         if (epoch + 1) % config.update_fre == 0:
-            agent.update()                 
+            loss = agent.update()  
+            loss_list.append(loss)               
+        rewards.append(ep_reward)
+    print('训练结束，用时：' + str(time.time() - start_time) + " s")
+    return {'episodes': range(len(rewards)), 'rewards': rewards}, loss_list
+    
+
+def random_train(config, env, agent):
+    start_time = time.time()
+    print(f"环境名：{config.env_name}, 算法名：random")
+    # 记录每个epoch的奖励
+    rewards = []
+    for epoch in range(config.epochs):
+        state, done = env.reset()
+        ep_reward = 0
+        
+        # 进行一个回合
+        for _ in range(1, config.ep_max_steps):
+            # 采样
+            action = random.choice(state[1])
+            # 执行动作，获取下一个状态、奖励和结束状态
+            next_state, reward, done = env.step(action)
+            '这里不需要乘gamma么？'
+            ep_reward += reward 
+            # 如果回合结束，则奖励为0
+            if done:
+                reward = 0
+            # 将采样的数据存起来
+            agent.memory.push((state, action, reward))
+            # 更新状态：当前状态等于下一个状态
+            state = next_state
+            if done:
+                break
+                
         rewards.append(ep_reward)
     print('训练结束，用时：' + str(time.time() - start_time) + " s")
     return {'episodes': range(len(rewards)), 'rewards': rewards}
-    
+
 
 if __name__ == "__main__":
     config = Config()
     memory = MemoryQueue()
     env = WorkerEnv()
     agent = PolicyGradientAgent(memory, config)
-    train(config, env, agent)
+    result, loss_list = train(config, env, agent)
+    random_result = random_train(config, env, agent)
+    plot_reward_curve(result['rewards'], random_result['rewards'], "PolicyNet on Worker")
+    plot_loss_curve(loss_list, 'PolicyNet on Worker')
