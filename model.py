@@ -1,5 +1,8 @@
 import torch
 import torch.nn as nn
+from utils import masked_softmax
+
+
 
 from utils import model_init
 
@@ -57,21 +60,30 @@ class Qnet(nn.Module):
 
 class PolicyNet(nn.Module):
     "策略网络（全连接网络）"
-    def __init__(self, len_category, len_sub_category, len_industry, dim):
+    def __init__(self, num_projects, len_category, len_sub_category, len_industry, dim):
         """ 初始化策略网络，为全连接网络
-            input_dim: 输入的特征数即环境的状态维度
-            output_dim: 输出的动作维度
+            len_category: 父标签向量的长度
+            len_sub_category: 子标签向量长度
+            len_industry: 子子标签向量长度
+            dim: embedding_dim
         """
         super(PolicyNet, self).__init__()
         self.project_encoder = ProjectEncoder(len_category, len_sub_category, len_industry, dim)
+        self.empty_weight = nn.Parameter(torch.Tensor(dim))
+        self.mlp = nn.Sequential(
+            nn.Linear(dim, dim * 4),
+            nn.ReLU(),
+            nn.Linear(dim * 4, num_projects),
+        )
 
-        self.fc1 = nn.Linear(input_dim, hidden_dim)  # 输入层
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)  # 隐藏层
-        self.fc3 = nn.Linear(hidden_dim, output_dim)  # 输出层
+    def forward(self, worker_history, action_list):
+        if len(worker_history) == 0:
+            worker_out = self.empty_weight
+        else:
+            worker_out = torch.mean(torch.cat([self.project_encoder(state) for state in worker_history], dim=0).view(len(worker_history), -1), dim=0)
+        mlp_input = worker_out
+        mlp_out = self.mlp(mlp_input)   
+        mask_index = torch.tensor([action[0] for action in action_list])
+        return masked_softmax(mlp_out, mask_index)
 
-    def forward(self, x):
-        # 各层对应的激活函数
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        return torch.sigmoid(self.fc3(x))
     
