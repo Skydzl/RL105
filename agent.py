@@ -3,7 +3,7 @@ import random
 import torch
 import torch.nn as nn
 from collections import deque
-from torch.distributions import Bernoulli
+from torch.distributions import Categorical
 
 from model import Qnet, PolicyNet
 import torch.nn.functional as F
@@ -65,15 +65,17 @@ class PolicyGradientAgent:
         self.gamma = config.gamma
         self.memory = memory
         # 策略网络
-        self.policy_net = PolicyNet()
+        self.policy_net = PolicyNet(config.num_projects, config.len_category, config.len_sub_category
+                                    ,config.len_industry, config.dim)
         # 优化器     
-        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=config.lr)
+        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=config.learning_rate)
         
     def sample_action(self, state):
-        probs = self.policy_net(state)   
-        m = Bernoulli(probs)
-        action = m.sample()
-        action = int(action.item())
+        worker_history, action_list = state 
+        probs = self.policy_net(worker_history, action_list) # 应该是mask掉后的，只有候选project的概率分布 
+        m = Categorical(probs)
+        action_index = m.sample()
+        action = [action for action in action_list if action[0] == int(action_index.item())][0]
         return action
     
     def update(self):
@@ -98,10 +100,10 @@ class PolicyGradientAgent:
         self.optimizer.zero_grad()
         for i in range(len(reward_pool)):
             state = state_pool[i]
-            action = action_pool[i]
+            action = torch.tensor(action_pool[i][0])
             reward = reward_pool[i]
-            probs = self.policy_net(state)
-            m = Bernoulli(probs)
+            probs = self.policy_net(state[0], state[1])
+            m = Categorical(probs)
             # 加权(reward)损失函数，加负号(将最大化问题转化为最小化问题)
             loss = -m.log_prob(action) * reward
             loss.backward()

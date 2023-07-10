@@ -1,9 +1,10 @@
 import collections
-import deuqe
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 import torch
+from torch import nn
+
 
 class ReplayBuffer:
     ''' 经验回放池 '''
@@ -67,6 +68,7 @@ def plot_return_curve(return_list, env_name):
     plt.ylabel('Returns')
     plt.title('DQN on {}'.format(env_name))
     plt.show()
+    
 
 def to_onehot(index, length: int, device):
     if type(index) in [int, np.ndarray]:
@@ -77,3 +79,53 @@ def to_onehot(index, length: int, device):
         res = torch.zeros(length, device=device)
     res.scatter_(index.dim() - 1, index, 1)
     return res
+
+
+# def sequence_mask(X, mask_index, value=0):
+#     """
+#         X: (B, maxlen)
+#         mask_index: (B, )
+#     """
+#     maxlen = X.shape[-1]
+#     mask = torch.arange(maxlen, dtype=torch.float32)[None, :] < \
+#         valid_lens[:, None]
+#     X[~mask] = value
+#     return X
+
+
+# def action_list_to_mask(action_list, output_dim):
+#     """
+#     Parameters
+#     ----------
+#     action_list : TYPE list of list(index, continous, discrete)
+#         DESCRIPTION. size: (num_actions, )
+#     output_dim : TYPE 
+#         DESCRIPTION. 输出维度，应和策略网络输出的维度一致，也就是project的数量
+
+#     Returns
+#     -------
+#     mask_index size: (batch_size num_projects)
+#         遮盖的位置为True，保留的地方为False
+#     """
+    
+    
+def masked_softmax(X, mask_index=None, value=-1e6):
+    """
+        遮盖softmax
+        X: (num_projects, )
+        mask_index: (num_actions, ) 不需要遮盖的index
+    """
+    if mask_index is None:
+        return nn.functional.softmax(X, dim=-1)
+    else:
+        mask_index = torch.tensor(list(
+            set(torch.arange(X.shape[0]).numpy()) - set(mask_index.numpy())))
+        X[mask_index] = value
+    return nn.functional.softmax(X, dim=-1)
+        
+
+
+
+
+
+
