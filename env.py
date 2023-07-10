@@ -76,11 +76,7 @@ class WorkerEnv(object):
         return obs, done
 
     def step(self, action):
-<<<<<<< HEAD
-        project_index, _, __ = action
-=======
         project_index, discrete, continuous = action
->>>>>>> 49ff65deef311e68d179c06519cbee4bb48555aa
         assert 0 <= project_index < self.project_num
         self.project_answer_count[project_index] += 1
         project_id = self.project_index2id_dict[project_index] # 记录该project的回答次数++
