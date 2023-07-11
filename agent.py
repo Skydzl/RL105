@@ -24,9 +24,9 @@ class WorkerRandAgent(nn.Module):
 class WorkerDQNAgent(nn.Module):
     def __init__(self, config) -> None:
         super(WorkerDQNAgent, self).__init__()
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() and config["device"] == "gpu" else "cpu")
-        self.q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"]).to(self.device)
-        self.target_q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"]).to(self.device)
+        # self.device = torch.device("cuda:0" if torch.cuda.is_available() and config["device"] == "gpu" else "cpu")
+        self.q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"])
+        self.target_q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"])
         self.opt = torch.optim.Adam(self.q_net.parameters(), lr=config["learning_rate"])
         self.count = 0
         self.gamma = config["gamma"]
@@ -44,10 +44,6 @@ class WorkerDQNAgent(nn.Module):
             max_q_value = 0.
             for action in action_list:
                 project_index, discrete, continuous = action
-                discrete = discrete.to(self.device)
-                continuous = continuous.to(self.device)
-                for i in range(len(worker_history)):
-                    worker_history[i] = tuple(x.to(self.device) for x in worker_history[i])
                 q_value = self.q_net(worker_history, (discrete, continuous)).item()
                 if q_value > max_q_value:
                     res_action = action
@@ -62,26 +58,18 @@ class WorkerDQNAgent(nn.Module):
             worker_history, action_list = state
             project_index, discrete, continuous = action
 
-            discrete = discrete.to(self.device)
-            continuous = continuous.to(self.device)
-            for i in range(len(worker_history)):
-                worker_history[i] = tuple(x.to(self.device) for x in worker_history[i])
-
             q_values = self.q_net(worker_history, (discrete, continuous))
             if done:
                 q_target = torch.Tensor([reward])
             else:
                 next_worker_history, next_action_list = next_state
-                for i in range(len(next_worker_history)):
-                    next_worker_history[i] = tuple(x.to(self.device) for x in next_worker_history[i])
-
-                max_next_q_values = max([self.target_q_net(next_worker_history, (next_discrete.to(self.device), next_continuous.to(self.device)))
+                max_next_q_values = max([self.target_q_net(next_worker_history, (next_discrete, next_continuous))
                                     for next_project_index, next_discrete, next_continuous in next_action_list])
                 q_target = reward + self.gamma * max_next_q_values
             # print('q_values:', q_values)
             # print('max_next_q_values:', max_next_q_values)
             # print('q_target:', q_target)
-            loss_list.append(F.mse_loss(q_values, q_target.detach().to(self.device)).view(-1))
+            loss_list.append(F.mse_loss(q_values, q_target.detach()).view(-1))
         dqn_loss = torch.mean(torch.cat(loss_list, dim=-1), dim=-1)
         self.opt.zero_grad()
         dqn_loss.backward()

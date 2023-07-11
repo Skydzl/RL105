@@ -51,7 +51,8 @@ def moving_average(a, window_size):
     r = np.arange(1, window_size-1, 2)
     begin = np.cumsum(a[:window_size-1])[::2] / r
     end = (np.cumsum(a[:-window_size:-1])[::2] / r)[::-1]
-    return np.concatenate((begin, middle, end))
+    return middle
+    # return np.concatenate((begin, middle, end))
 
 
 def plot_reward_curve(return_list, random_list, env_name):
@@ -65,10 +66,12 @@ def plot_reward_curve(return_list, random_list, env_name):
     plt.legend()
     plt.show()
 
-    mv_return = moving_average(return_list, 99)
-    mv_random = moving_average(random_list, 99)
-    plt.plot(iterations, mv_return, color='b', label='DQN')
-    plt.plot(random_iterations, mv_random, color='r', label='RANDOM')
+    mv_return = moving_average(return_list, 999)
+    mv_random = moving_average(random_list, 999)
+    mv_iterations = list(range(len(mv_return)))
+    mv_random_iterations = list(range(len(mv_random)))
+    plt.plot(mv_iterations, mv_return, color='b', label='DQN')
+    plt.plot(mv_random_iterations, mv_random, color='r', label='RANDOM')
     plt.xlabel('Iterations')
     plt.ylabel('Rewards')
     plt.title('{} Rewards (moving average)'.format(env_name))
@@ -85,7 +88,8 @@ def plot_loss_curve(loss_list, env_name):
     plt.show()
 
     mv_loss = moving_average(loss_list, 99)
-    plt.plot(iterations, mv_loss)
+    mv_iterations = list(range(len(mv_loss)))
+    plt.plot(mv_iterations, mv_loss)
     plt.xlabel('Iterations')
     plt.ylabel('Loss')
     plt.title('{} Loss (moving average)'.format(env_name))
