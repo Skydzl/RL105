@@ -19,7 +19,8 @@ class WorkerAgent(nn.Module):
         self.gamma = config["gamma"]
         self.epsilon = config["epsilon"]
         self.target_update = config["target_update"]
-    
+        
+    @torch.no_grad()
     def take_action(self, state):
         worker_history, action_list = state
         # project_index_list = [project_index for project_index, discrete, continuous in action_list]
@@ -46,9 +47,12 @@ class WorkerAgent(nn.Module):
             next_worker_history, next_action_list = next_state
 
             q_values = self.q_net(worker_history, (discrete, continuous))
-            max_next_q_values = max([self.target_q_net(next_worker_history, (next_discrete, next_continuous))
-                                for next_project_index, next_discrete, next_continuous in next_action_list])
-            q_target = reward + self.gamma * max_next_q_values * (1 - done)
+            if done:
+                q_target = torch.Tensor([reward])
+            else:
+                max_next_q_values = max([self.target_q_net(next_worker_history, (next_discrete, next_continuous))
+                                    for next_project_index, next_discrete, next_continuous in next_action_list])
+                q_target = reward + self.gamma * max_next_q_values
             # print('q_values:', q_values)
             # print('max_next_q_values:', max_next_q_values)
             # print('q_target:', q_target)
@@ -105,6 +109,7 @@ class PolicyGradientAgent:
         
         # 梯度下降
         self.optimizer.zero_grad()
+        loss_list = []
         for i in range(len(reward_pool)):
             state = state_pool[i]
             action = torch.tensor(action_pool[i][0])
@@ -112,11 +117,12 @@ class PolicyGradientAgent:
             probs = self.policy_net(state[0], state[1])
             m = Categorical(probs)
             # 加权(reward)损失函数，加负号(将最大化问题转化为最小化问题)
-            loss = -m.log_prob(action) * reward
+            loss = -m.log_prob(action) * (reward + 1e-6)
             loss.backward()
+            loss_list.append(loss.detach())
         self.optimizer.step()
         self.memory.clear()
-        return loss.detach()
+        return np.array(loss_list).mean()
         
         def save_model(self, path):
             torch.save(self.policy_net, path+'policy_net.pth')

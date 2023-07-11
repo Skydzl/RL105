@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['train_worker_policynet.py', 'model.py', 'agent.py', 'env.py', 'utils.py']
+recent_files = ['train_worker_policynet.py', 'train_worker_dqn.py', 'utils.py', 'agent.py', 'env.py']
 
 [main]
 version = 0.2.0

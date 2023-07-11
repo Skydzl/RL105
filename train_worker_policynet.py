@@ -8,6 +8,7 @@ Created on Fri Jul  7 11:13:12 2023
 import time
 import yaml
 import random
+import pickle
 
 from agent import PolicyGradientAgent
 from utils import MemoryQueue
@@ -66,7 +67,8 @@ def train(config, env, agent):
         # 每采样几个回合就对智能体做一次更新
         if (epoch + 1) % config.update_fre == 0:
             loss = agent.update()  
-            loss_list.append(loss)               
+            loss_list.append(loss)     
+            print(f"train_loss: {loss:.2f}")          
         rewards.append(ep_reward)
     print('训练结束，用时：' + str(time.time() - start_time) + " s")
     return {'episodes': range(len(rewards)), 'rewards': rewards}, loss_list
@@ -98,7 +100,8 @@ def random_train(config, env, agent):
             state = next_state
             if done:
                 break
-                
+        if (epoch + 1) % 1 == 0:
+            print(f"Epochs：{epoch + 1}/{config.epochs}, Reward:{ep_reward:.2f}")   
         rewards.append(ep_reward)
     print('训练结束，用时：' + str(time.time() - start_time) + " s")
     return {'episodes': range(len(rewards)), 'rewards': rewards}
@@ -113,5 +116,9 @@ if __name__ == "__main__":
     agent = PolicyGradientAgent(memory, config)
     result, loss_list = train(config, env, agent)
     random_result = random_train(config, env, agent)
+    result_list = result, loss_list, random_result
+    pickle.dump(result_list, open(
+            "./result/Policy_Worker_result_list_his_{}_{}_{}.pickle"
+            .format(str(config.ep_max_steps), str(config.epochs), str(config.update_fre)), "wb"))    
     plot_reward_curve(result['rewards'], random_result['rewards'], "PolicyNet on Worker")
     plot_loss_curve(loss_list, 'PolicyNet on Worker')
