@@ -1,3 +1,4 @@
+device: gpu
 seed: 42
 buffer_size: 1000
 batch_size: 32
