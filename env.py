@@ -54,7 +54,7 @@ class WorkerEnv(object):
         self.worker_index = 0
         self.worker_list_pos = 0
         self.worker_answer_history_dict = {}
-
+        self.worker_history_dict = self.train_worker_history_dict
 
         for worker_id, history_list in self.prior_worker_history_dict.items():
             self.worker_answer_history_dict[worker_id] = list()
@@ -64,38 +64,29 @@ class WorkerEnv(object):
         obs, done = self.get_obs()
         return obs, done
 
-    # TODO: 还没修改完
     def test_reset(self, mode="test"):
         # 测试阶段的初始化
-        if mode == "test":
-            self.worker_time_list, self.worker_list, _ = zip(*sorted(self.test_data))
-        elif mode == "valid":
-            self.worker_time_list, self.worker_list, _ = zip(*sorted(self.valid_data))
-        self.worker_pos = 0
+        self.worker_index = 0
+        self.worker_list_pos = 0
         self.worker_answer_history_dict = {}
-        self.project_answer_count = torch.zeros(self.project_num)
-
-        for time, worker_id, project_id in self.prior_data:
-            project_index = self.project_id2index_dict[project_id]
-            self.project_answer_count[project_index] += 1
-            if worker_id not in self.worker_answer_history_dict:
-                self.worker_answer_history_dict[worker_id] = list()
-            self.worker_answer_history_dict[worker_id].append(project_id)
-        
-        for time, worker_id, project_id in self.train_data:
-            project_index = self.project_id2index_dict[project_id]
-            self.project_answer_count[project_index] += 1
-            if worker_id not in self.worker_answer_history_dict:
-                self.worker_answer_history_dict[worker_id] = list()
-            self.worker_answer_history_dict[worker_id].append(project_id)
-        
         if mode == "test":
-            for time, worker_id, project_id in self.valid_data:
-                project_index = self.project_id2index_dict[project_id]
-                self.project_answer_count[project_index] += 1
-                if worker_id not in self.worker_answer_history_dict:
-                    self.worker_answer_history_dict[worker_id] = list()
+            self.worker_history_dict = self.test_worker_history_dict
+        elif mode == "valid":
+            self.worker_history_dict = self.valid_worker_history_dict
+        
+        for worker_id, history_list in self.prior_worker_history_dict.items():
+            self.worker_answer_history_dict[worker_id] = list()
+            for time, project_id in history_list:
                 self.worker_answer_history_dict[worker_id].append(project_id)
+
+        for worker_id, history_list in self.train_worker_history_dict.items():
+            for time, project_id in history_list:
+                self.worker_answer_history_dict[worker_id].append(project_id)
+
+        if mode == "test":
+            for worker_id, history_list in self.valid_worker_history_dict.items():
+                for time, project_id in history_list:
+                    self.worker_answer_history_dict[worker_id].append(project_id)
         
         obs, done = self.get_obs()
         return obs, done
@@ -129,7 +120,7 @@ class WorkerEnv(object):
         obs = None
         while not done:
             worker_id = self.worker_index2id_dict[self.worker_index]
-            if self.worker_list_pos == len(self.train_worker_history_dict[worker_id]):
+            if self.worker_list_pos == len(self.worker_history_dict[worker_id]):
                 done = True
             if not done:
                 obs = self._obs()
@@ -141,7 +132,7 @@ class WorkerEnv(object):
 
     def _obs(self):
         worker_id = self.worker_index2id_dict[self.worker_index]
-        worker_time = self.train_worker_history_dict[self.worker_id][self.worker_list_pos][0]
+        worker_time = self.worker_history_dict[worker_id][self.worker_list_pos][0]
         action_list = list()
         for project_id, p_info in self.project_info.items():
             project_index = self.project_id2index_dict[project_id]
