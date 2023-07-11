@@ -12,8 +12,8 @@ class WorkerEnv(object):
             self.worker_quality,
             self.project_info,
             self.answer_info,
-            self.worker_time_list,
-            self.worker_list,
+            _, # self.worker_time_list, 使用train_data的time_list作为worker_time_list
+            __, # self.worker_list, 使用train_data的worker_list作为worker_list
             self.project_id2index_dict,
             self.project_index2id_dict,
             self.worker_id2index_dict,
@@ -22,7 +22,17 @@ class WorkerEnv(object):
             self.sub_category_dict,
             self.category_dict
         ) = data
+        with open('./data/split_data.pickle', 'rb') as f:
+            split_data = pickle.load(f)
+        (
+            self.prior_worker_history_dict, # {worker_id: [(time, project_id)]}
+            self.train_worker_history_dict, # {worker_id: [(time, project_id)]}
+            self.valid_worker_history_dict, # {worker_id: [(time, project_id)]}
+            self.test_worker_history_dict   # {worker_id: [(time, project_id)]}
+        ) = split_data
+
         self.project_num = len(self.project_info)
+        self.worker_num = len(self.worker_quality)
         self.project_discrete_vector = torch.zeros((self.project_num, 3), dtype=torch.int64)
         self.project_continuous_vector = torch.zeros((self.project_num, 3), dtype=torch.float)
         for p_id, p_info in self.project_info.items():
@@ -33,111 +43,102 @@ class WorkerEnv(object):
             self.project_continuous_vector[project_index][0] = p_info["average_score"]
             self.project_continuous_vector[project_index][1] = p_info["client_feedback"]
             self.project_continuous_vector[project_index][2] = p_info["total_awards_and_tips"]
-        self.worker_pos = 0
+        self.worker_index = 0 # 当前是哪个worker
+        self.worker_list_pos = 0 # 当前worker的状态位置
         self.worker_answer_history_dict = {} # worker的回答历史
         self.project_answer_count = torch.zeros(self.project_num) # 当前项目回答的数量
         self.max_history_len = config["max_history_len"]
-        self.true_history_len = config["true_history_len"]
 
-        # 保存初始化状态
-        self.init_worker_pos = None
-        self.init_worker_answer_history_dict = None
-        self.init_project_answer_count = None
-
-    def reset(self):
-        self.worker_pos = 0
+    def reset(self): 
+        # 训练阶段每回合的初始化
+        self.worker_index = 0
+        self.worker_list_pos = 0
         self.worker_answer_history_dict = {}
-        self.project_answer_count = torch.zeros(self.project_num)
+        self.worker_history_dict = self.train_worker_history_dict
 
-        if self.init_worker_pos is None:
-            while self.worker_pos < self.true_history_len:
-                worker_id = self.worker_list[self.worker_pos]
-                worker_time = self.worker_time_list[self.worker_pos]
-                if worker_id not in self.worker_answer_history_dict:
-                    self.worker_answer_history_dict[worker_id] = []
-                for project_id, p_info in self.project_info.items():
-                    project_index = self.project_id2index_dict[project_id]
-                    if p_info["start_date"] > worker_time or p_info["deadline"] < worker_time: # 时间不符合
-                        continue
-                    if project_id in self.worker_answer_history_dict[worker_id]: # 已经回答过了
-                        continue
-                    if self.project_answer_count[project_index] == p_info["entry_count"]: # project回答数量已满
-                        continue
-                    if worker_id not in self.answer_info[project_id]:
-                        continue
+        for worker_id, history_list in self.prior_worker_history_dict.items():
+            self.worker_answer_history_dict[worker_id] = list()
+            for time, project_id in history_list:
+                self.worker_answer_history_dict[worker_id].append(project_id)
+                
+        obs, done = self.get_obs()
+        return obs, done
+
+    def test_reset(self, mode="test"):
+        # 测试阶段的初始化
+        self.worker_index = 0
+        self.worker_list_pos = 0
+        self.worker_answer_history_dict = {}
+        if mode == "test":
+            self.worker_history_dict = self.test_worker_history_dict
+        elif mode == "valid":
+            self.worker_history_dict = self.valid_worker_history_dict
+        
+        for worker_id, history_list in self.prior_worker_history_dict.items():
+            self.worker_answer_history_dict[worker_id] = list()
+            for time, project_id in history_list:
+                self.worker_answer_history_dict[worker_id].append(project_id)
+
+        for worker_id, history_list in self.train_worker_history_dict.items():
+            for time, project_id in history_list:
+                self.worker_answer_history_dict[worker_id].append(project_id)
+
+        if mode == "test":
+            for worker_id, history_list in self.valid_worker_history_dict.items():
+                for time, project_id in history_list:
                     self.worker_answer_history_dict[worker_id].append(project_id)
-                    self.project_answer_count[project_index] += 1
-                self.worker_pos += 1
-            self.init_worker_pos = copy.deepcopy(self.worker_pos)
-            self.init_worker_answer_history_dict = copy.deepcopy(self.worker_answer_history_dict)
-            self.init_project_answer_count = copy.deepcopy(self.project_answer_count)
-        else:
-            self.worker_pos = copy.deepcopy(self.init_worker_pos)
-            self.worker_answer_history_dict = copy.deepcopy(self.init_worker_answer_history_dict)
-            self.project_answer_count = copy.deepcopy(self.init_project_answer_count)
-
-        done = False
-        obs = None
-        while not done:
-            if self.worker_pos == len(self.worker_list):
-                done = True
-            if not done:
-                obs = self._obs()
-                worker_history, action_list = obs
-                if len(action_list) > 0:
-                    break
-                self.worker_pos += 1
+        
+        obs, done = self.get_obs()
         return obs, done
 
     def step(self, action):
         project_index, discrete, continuous = action
         assert 0 <= project_index < self.project_num
-        self.project_answer_count[project_index] += 1
-        project_id = self.project_index2id_dict[project_index] # 记录该project的回答次数++
-        worker_id = self.worker_list[self.worker_pos]
+        # self.project_answer_count[project_index] += 1  # 记录该project的回答次数++
+        project_id = self.project_index2id_dict[project_index]
+        worker_id = self.worker_index2id_dict[self.worker_index]
         
-        if worker_id not in self.worker_answer_history_dict:
-            self.worker_answer_history_dict[worker_id] = []
         reward = 0
+        self.worker_answer_history_dict[worker_id].append(project_id) # 记录当前worker已经回答了该project
         if worker_id in self.answer_info[project_id]:
             # 当前worker真实回答了该project
-            self.worker_answer_history_dict[worker_id].append(project_id) # 记录当前worker已经回答了该project
-            reward = 1
+            reward = self.answer_info[project_id][worker_id]["answer_cnt"] # 奖励值为 (回答这个问题的次数)
             if self.answer_info[project_id][worker_id]["finalist"] == True:
-                # 当前worker的真实回答finalist
-                reward = 3
+                # 当前worker的真实回答是finalist
+                reward += 5
                 if self.answer_info[project_id][worker_id]["winner"] == True:
                     # 当前worker的真实回答是winner
-                    reward = 5
+                    reward += 10
         
-        self.worker_pos += 1
+        self.worker_list_pos += 1
 
+        obs, done = self.get_obs()
+        return obs, reward, done
+    
+    def get_obs(self):
         done = False
         obs = None
         while not done:
-            if self.worker_pos == len(self.worker_list):
+            worker_id = self.worker_index2id_dict[self.worker_index]
+            if self.worker_list_pos == len(self.worker_history_dict[worker_id]):
                 done = True
             if not done:
                 obs = self._obs()
                 worker_history, action_list = obs
                 if len(action_list) > 0:
                     break
-                self.worker_pos += 1
-        return obs, reward, done
-    
+                self.worker_list_pos += 1
+        return obs, done
+
     def _obs(self):
-        worker_id = self.worker_list[self.worker_pos]
-        worker_time = self.worker_time_list[self.worker_pos]
+        worker_id = self.worker_index2id_dict[self.worker_index]
+        worker_time = self.worker_history_dict[worker_id][self.worker_list_pos][0]
         action_list = list()
-        if worker_id not in self.worker_answer_history_dict:
-            self.worker_answer_history_dict[worker_id] = list()
         for project_id, p_info in self.project_info.items():
             project_index = self.project_id2index_dict[project_id]
             if p_info["start_date"] > worker_time or p_info["deadline"] < worker_time: # 时间不符合
                 continue
             if project_id in self.worker_answer_history_dict[worker_id]: # 已经回答过了
-                continue
-            if self.project_answer_count[project_index] == p_info["entry_count"]: # project回答数量已满
                 continue
             action = (
                 project_index,

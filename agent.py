@@ -9,9 +9,21 @@ from model import Qnet, PolicyNet
 import torch.nn.functional as F
 
 
-class WorkerAgent(nn.Module):
+class WorkerRandAgent(nn.Module):
     def __init__(self, config) -> None:
-        super(WorkerAgent, self).__init__()
+        super().__init__()
+    
+    def take_action(self, state, mode="train"):
+        worker_history, action_list = state
+        action = random.choice(action_list)
+        return action
+    
+    def update(self, transitions):
+        return 0.
+
+class WorkerDQNAgent(nn.Module):
+    def __init__(self, config) -> None:
+        super(WorkerDQNAgent, self).__init__()
         self.q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"])
         self.target_q_net = Qnet(config["len_category"], config["len_sub_category"], config["len_industry"], config["dim"])
         self.opt = torch.optim.Adam(self.q_net.parameters(), lr=config["learning_rate"])
@@ -21,10 +33,10 @@ class WorkerAgent(nn.Module):
         self.target_update = config["target_update"]
         
     @torch.no_grad()
-    def take_action(self, state):
+    def take_action(self, state, mode="train"):
         worker_history, action_list = state
         # project_index_list = [project_index for project_index, discrete, continuous in action_list]
-        if np.random.random() < self.epsilon + 1.0 / (self.count / 10 + 1.5):
+        if mode == "train" and np.random.random() < self.epsilon + 1.0 / (self.count / 10 + 1.5):
             res_action = random.choice(action_list)
         else:
             res_action = None
@@ -44,12 +56,12 @@ class WorkerAgent(nn.Module):
         for state, action, reward, next_state, done in transitions:
             worker_history, action_list = state
             project_index, discrete, continuous = action
-            next_worker_history, next_action_list = next_state
 
             q_values = self.q_net(worker_history, (discrete, continuous))
             if done:
                 q_target = torch.Tensor([reward])
             else:
+                next_worker_history, next_action_list = next_state
                 max_next_q_values = max([self.target_q_net(next_worker_history, (next_discrete, next_continuous))
                                     for next_project_index, next_discrete, next_continuous in next_action_list])
                 q_target = reward + self.gamma * max_next_q_values
