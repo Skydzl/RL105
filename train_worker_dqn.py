@@ -40,7 +40,7 @@ def train(config, agent, env):
     return reward_list, loss_list
 
 
-def test(agent, env):
+def test(config, agent, env):
     reward_list = []
     reward_sum = 0
     env.test_reset()
@@ -50,7 +50,7 @@ def test(agent, env):
             action = agent.take_action(state, "test")
             next_state, reward, done = env.step(action)
             state = next_state
-            reward_list.append(reward_list)
+            reward_list.append(reward)
             reward_sum += reward
         env.worker_index += 1
         env.worker_list_pos = 0
@@ -136,11 +136,11 @@ if __name__ == "__main__":
     random_agent = WorkerRandAgent(config)
     env = WorkerEnv(config)
 
-    # train_random_reward_list, train_random_loss_list = train(config, random_agent, env)
-    # test_random_reward_list, test_random_reward_sum = test(random_agent, env)
+    train_random_reward_list, train_random_loss_list = train(config, random_agent, env)
+    test_random_reward_list, test_random_reward_sum = test(config, random_agent, env)
 
     train_dqn_reward_list, train_dqn_loss_list = train(config, dqn_agent, env)
-    test_dqn_reward_list, test_dqn_reward_sum = test(dqn_agent, env)
+    test_dqn_reward_list, test_dqn_reward_sum = test(config, dqn_agent, env)
 
 
     result_dict = {
@@ -148,13 +148,13 @@ if __name__ == "__main__":
         "train_dqn_loss_list": train_dqn_loss_list,
         "test_dqn_reward_list": test_dqn_reward_list,
         "test_dqn_reward_sum": test_dqn_reward_sum,
-        # "train_random_reward_list": train_random_reward_list,
-        # "train_random_loss_list": train_random_loss_list,
-        # "test_random_reward_list": test_random_reward_list,
-        # "test_random_reward_sum": test_random_reward_sum
+        "train_random_reward_list": train_random_reward_list,
+        "train_random_loss_list": train_random_loss_list,
+        "test_random_reward_list": test_random_reward_list,
+        "test_random_reward_sum": test_random_reward_sum
     }
 
-    with open("./result/DQN_Worker_result_dict.pickle", "wb") as fp:
+    with open("./result/RANDOM_Worker_result_dict.pickle", "wb") as fp:
         pickle.dump(result_dict, fp)
     # print(reward_list)
     # plot_reward_curve(reward_list, random_list, "DQN on Worker")
