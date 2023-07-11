@@ -61,18 +61,7 @@ class WorkerEnv(object):
             for time, project_id in history_list:
                 self.worker_answer_history_dict[worker_id].append(project_id)
                 
-        done = False
-        obs = None
-        while not done:
-            worker_id = self.worker_index2id_dict[self.worker_index]
-            if self.worker_list_pos == len(self.train_worker_history_dict[worker_id]):
-                done = True
-            if not done:
-                obs = self._obs()
-                worker_history, action_list = obs
-                if len(action_list) > 0:
-                    break
-                self.worker_list_pos += 1
+        obs, done = self.get_obs()
         return obs, done
 
     # TODO: 还没修改完
@@ -108,17 +97,7 @@ class WorkerEnv(object):
                     self.worker_answer_history_dict[worker_id] = list()
                 self.worker_answer_history_dict[worker_id].append(project_id)
         
-        done = False
-        obs = None
-        while not done:
-            if self.worker_pos == len(self.worker_list):
-                done = True
-            if not done:
-                obs = self._obs()
-                worker_history, action_list = obs
-                if len(action_list) > 0:
-                    break
-                self.worker_pos += 1
+        obs, done = self.get_obs()
         return obs, done
 
     def step(self, action):
@@ -142,11 +121,15 @@ class WorkerEnv(object):
         
         self.worker_list_pos += 1
 
+        obs, done = self.get_obs()
+        return obs, reward, done
+    
+    def get_obs(self):
         done = False
         obs = None
         while not done:
             worker_id = self.worker_index2id_dict[self.worker_index]
-            if self.worker_list_pos == len(self.train_worker_history_dict[self.worker_id]):
+            if self.worker_list_pos == len(self.train_worker_history_dict[worker_id]):
                 done = True
             if not done:
                 obs = self._obs()
@@ -154,8 +137,8 @@ class WorkerEnv(object):
                 if len(action_list) > 0:
                     break
                 self.worker_list_pos += 1
-        return obs, reward, done
-    
+        return obs, done
+
     def _obs(self):
         worker_id = self.worker_index2id_dict[self.worker_index]
         worker_time = self.train_worker_history_dict[self.worker_id][self.worker_list_pos][0]

@@ -8,6 +8,8 @@ num_episodes: 2
 update_frequency: 50
 target_update: 10
 
+worker_num: 1807
+
 max_history_len: 30
 
 gamma: 0.95

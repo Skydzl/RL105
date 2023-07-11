@@ -19,27 +19,28 @@ def train(config, agent, env):
     for episode in range(config["num_episodes"]):
         iteration_return = 0
         state, done = env.reset()
-        # while not done:
-        for i in tqdm(range(len(env.worker_list) - config["true_history_len"])):
-            action = agent.take_action(state)
-            next_state, reward, done = env.step(action)
-            replay_buffer.add(state, action, reward, next_state, done)
-            state = next_state
-            iteration_return += reward
-            if replay_buffer.cnt % config["update_frequency"] == 0:
-                transitions = replay_buffer.sample(config["batch_size"])
-                loss = agent.update(transitions)
-                loss_list.append(loss)
-                return_list.append(iteration_return)
-                iteration_return = 0
-            # if replay_buffer.cnt == 10000:
-            #     break
-            if done:
-                break
+        while env.worker_index < config["worker_num"]:
+            state, done = env.get_obs()
+            while not done:
+                action = agent.take_action(state)
+                next_state, reward, done = env.step(action)
+                replay_buffer.add(state, action, reward, next_state, done)
+                state = next_state
+                iteration_return += reward
+                if replay_buffer.cnt % config["update_frequency"] == 0:
+                    transitions = replay_buffer.sample(config["batch_size"])
+                    loss = agent.update(transitions)
+                    loss_list.append(loss)
+                    return_list.append(iteration_return)
+                    iteration_return = 0
+            env.worker_index += 1
+            env.worker_list_pos = 0
+
     return return_list, loss_list
 
+#TODO: 没更新完
 def test():
-
+    return
 
 def random_train():
     with open("./config/worker_dqn.yaml", "rb") as f:
