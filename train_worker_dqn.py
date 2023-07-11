@@ -10,18 +10,11 @@ from agent import WorkerAgent
 from env import WorkerEnv
 from utils import ReplayBuffer, moving_average, plot_reward_curve, plot_loss_curve
 
-def train():
-    with open("./config/worker_dqn.yaml", "rb") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    random.seed(config["seed"])
-    np.random.seed(config["seed"])
-    torch.manual_seed(config["seed"])
+def train(config, agent, env):
     replay_buffer = ReplayBuffer(config["buffer_size"])
-    env = WorkerEnv(config)
-    agent = WorkerAgent(config)
+    
     return_list = []
     loss_list = []
-
     # with tqdm(total=int(config["num_episodes"]), desc='Iteration %d' % i) as pbar:
     for episode in range(config["num_episodes"]):
         iteration_return = 0
@@ -44,6 +37,9 @@ def train():
             if done:
                 break
     return return_list, loss_list
+
+def test():
+
 
 def random_train():
     with open("./config/worker_dqn.yaml", "rb") as f:
@@ -115,10 +111,18 @@ def random_train():
 
 
 if __name__ == "__main__":
+    with open("./config/worker_dqn.yaml", "rb") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    random.seed(config["seed"])
+    np.random.seed(config["seed"])
+    torch.manual_seed(config["seed"])
+    agent = WorkerAgent(config)
+    env = WorkerEnv(config)
+
     return_list, loss_list = train()
     random_list = random_train()
     result_list = return_list, random_list, loss_list
-    with open("./result/DQN_Worker_result_list_his_190000.pickle", "wb") as fp:
+    with open("./result/DQN_Worker_result_list_his_50000.pickle", "wb") as fp:
         pickle.dump(result_list, fp)
     # print(return_list)
     plot_reward_curve(return_list, random_list, "DQN on Worker")
