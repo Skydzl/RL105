@@ -121,6 +121,7 @@ class PolicyGradientAgent:
         
         # 梯度下降
         self.optimizer.zero_grad()
+        loss_list = []
         for i in range(len(reward_pool)):
             state = state_pool[i]
             action = torch.tensor(action_pool[i][0])
@@ -128,11 +129,12 @@ class PolicyGradientAgent:
             probs = self.policy_net(state[0], state[1])
             m = Categorical(probs)
             # 加权(reward)损失函数，加负号(将最大化问题转化为最小化问题)
-            loss = -m.log_prob(action) * reward
+            loss = -m.log_prob(action) * (reward + 1e-6)
             loss.backward()
+            loss_list.append(loss.detach())
         self.optimizer.step()
         self.memory.clear()
-        return loss.detach()
+        return np.array(loss_list).mean()
         
         def save_model(self, path):
             torch.save(self.policy_net, path+'policy_net.pth')
