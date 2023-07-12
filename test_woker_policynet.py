@@ -65,7 +65,7 @@ def new_train(config, env, agent):
                 if step % config.update_fre == 0:
                     reward_list.append(iteration_return)
                     iteration_return = 0
-            if len(env.memory) != 0:
+            if len(agent.memory) != 0:
                 loss = agent.update()  
                 loss_list.append(loss)
             env.worker_index += 1
