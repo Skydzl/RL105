@@ -1,7 +1,8 @@
 import torch
+import numpy as np
 import torch.nn as nn
 from utils import masked_softmax
-
+import torch.nn.functional as F
 
 
 from utils import model_init
@@ -86,4 +87,74 @@ class PolicyNet(nn.Module):
         mask_index = torch.tensor([action[0] for action in action_list])
         return masked_softmax(mlp_out, mask_index)
 
+class ProjectEncoderForAC(nn.Module):
+    def __init__(self, len_category, len_sub_catetory, len_industry, dim, device):
+        super(ProjectEncoderForAC, self).__init__()
+        self.device = device
+        self.category_embedding = nn.Embedding(len_category, dim)
+        self.sub_category_embedding = nn.Embedding(len_sub_catetory, dim)
+        self.industry_embedding = nn.Embedding(len_industry, dim)
+        self.fc = nn.Sequential(
+            nn.Linear(dim * 3 + 3, dim * 4),
+            nn.ReLU(),
+            nn.Linear(dim * 4, dim)
+        )
     
+    def forward(self, project):
+        discrete_data, continuous_data = project
+        category, sub_category, industry = discrete_data.to(self.device)
+        average_score, client_feedback, total_awards_and_tips = continuous_data.to(self.device)
+        fc_input = torch.cat((
+            self.category_embedding(category),
+            self.sub_category_embedding(sub_category),
+            self.industry_embedding(industry),
+            average_score.view(-1),
+            client_feedback.view(-1),
+            total_awards_and_tips.view(-1),
+        ), dim=-1)
+        fc_out = self.fc(fc_input)
+        return fc_out
+
+class ValueNetForAC(nn.Module):
+    # ActorCritic算法的Value网络
+    def __init__(self, dim):
+        super(ValueNetForAC, self).__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(dim, dim * 4),
+            nn.ReLU(),
+            nn.Linear(dim * 4, dim * 4),
+            nn.ReLU(),
+            nn.Linear(dim * 4, 1),
+        )
+        model_init(self)
+
+    def forward(self, worker_state):
+        mlp_out = self.mlp(worker_state)
+        return mlp_out
+    
+class PolicyNetForAC(nn.Module):
+    # ActorCritic算法的Policy网络
+    def __init__(self, num_projects, dim, device):
+        """ 初始化策略网络，为全连接网络
+            num_projects: 可选择的动作数量
+            dim: embedding_dim
+        """
+        super(PolicyNetForAC, self).__init__()
+        self.device = device
+        self.mlp = nn.Sequential(
+            nn.Linear(dim, dim * 4),
+            nn.ReLU(),
+            nn.Linear(dim * 4, dim * 4),
+            nn.ReLU(),
+            nn.Linear(dim * 4, num_projects),
+        )
+
+    def forward(self, worker_state, worker_action_list):
+        mlp_out = self.mlp(worker_state)
+        for idx, action_list in enumerate(worker_action_list):
+            effective_idx = set(action[0] for action in action_list)
+            mask_index = torch.tensor(list(set(np.arange(mlp_out.shape[-1])) - effective_idx)).to(self.device)
+            mlp_out[idx][mask_index] = -1e6
+        
+        output = nn.functional.softmax(mlp_out, dim=-1)
+        return output

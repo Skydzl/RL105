@@ -1,0 +1,18 @@
+num_episodes: 5
+seed: 42
+device: 'gpu'
+gpu: '3'
+
+update_frequency: 50
+worker_num: 1807
+max_history_len: 30
+num_projects: 2501
+update_fre: 50
+
+actor_lr: 0.001
+critic_lr: 0.01
+len_category: 7
+len_sub_category: 29
+len_industry: 37
+dim: 30
+gamma: 0.95

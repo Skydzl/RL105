@@ -163,4 +163,3 @@ class WorkerEnv(object):
 
 if __name__ == "__main__":
     wkenv = WorkerEnv()
-        
