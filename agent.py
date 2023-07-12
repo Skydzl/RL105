@@ -81,6 +81,12 @@ class WorkerDQNAgent(nn.Module):
             )
         self.count += 1
         return dqn_loss.cpu().item()
+    
+    def save(self, path):
+        torch.save(self.state_dict(), path)
+    
+    def load(self, path):
+        self.load_state_dict(torch.load(path))
 
 
 class PolicyGradientAgent:

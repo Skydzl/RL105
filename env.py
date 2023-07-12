@@ -52,6 +52,8 @@ class WorkerEnv(object):
     def reset(self): 
         # 训练阶段每回合的初始化
         self.worker_index = 0
+        self.worker_index_hash = [i for i in range(self.worker_num)]
+        random.shuffle(self.worker_index_hash)
         self.worker_list_pos = 0
         self.worker_answer_history_dict = {}
         self.worker_history_dict = self.train_worker_history_dict
@@ -67,6 +69,7 @@ class WorkerEnv(object):
     def test_reset(self, mode="test"):
         # 测试阶段的初始化
         self.worker_index = 0
+        self.worker_index_hash = [i for i in range(self.worker_num)]
         self.worker_list_pos = 0
         self.worker_answer_history_dict = {}
         if mode == "test":
@@ -96,7 +99,7 @@ class WorkerEnv(object):
         assert 0 <= project_index < self.project_num
         # self.project_answer_count[project_index] += 1  # 记录该project的回答次数++
         project_id = self.project_index2id_dict[project_index]
-        worker_id = self.worker_index2id_dict[self.worker_index]
+        worker_id = self.worker_index2id_dict[self.worker_index_hash[self.worker_index]]
         
         reward = 0
         self.worker_answer_history_dict[worker_id].append(project_id) # 记录当前worker已经回答了该project
@@ -119,7 +122,7 @@ class WorkerEnv(object):
         done = False
         obs = None
         while not done:
-            worker_id = self.worker_index2id_dict[self.worker_index]
+            worker_id = self.worker_index2id_dict[self.worker_index_hash[self.worker_index]]
             if self.worker_list_pos == len(self.worker_history_dict[worker_id]):
                 done = True
             if not done:
@@ -131,7 +134,7 @@ class WorkerEnv(object):
         return obs, done
 
     def _obs(self):
-        worker_id = self.worker_index2id_dict[self.worker_index]
+        worker_id = self.worker_index2id_dict[self.worker_index_hash[self.worker_index]]
         worker_time = self.worker_history_dict[worker_id][self.worker_list_pos][0]
         action_list = list()
         for project_id, p_info in self.project_info.items():
