@@ -52,7 +52,8 @@ class WorkerEnv(object):
     def reset(self): 
         # 训练阶段每回合的初始化
         self.worker_index = 0
-        self.worker_index_hash = random.shuffle([i for i in range(self.worker_num)])
+        self.worker_index_hash = [i for i in range(self.worker_num)]
+        random.shuffle(self.worker_index_hash)
         self.worker_list_pos = 0
         self.worker_answer_history_dict = {}
         self.worker_history_dict = self.train_worker_history_dict
