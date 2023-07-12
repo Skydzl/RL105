@@ -154,8 +154,7 @@ def masked_softmax(X, mask_index=None, value=-1e6):
     if mask_index is None:
         return nn.functional.softmax(X, dim=-1)
     else:
-        mask_index = torch.tensor(list(
-            set(torch.arange(X.shape[0]).numpy()) - set(mask_index.numpy())))
+        mask_index = torch.tensor(list(set(torch.arange(X.shape[0]).numpy()) - set(mask_index.numpy())))
         X[mask_index] = value
     return nn.functional.softmax(X, dim=-1)
         
