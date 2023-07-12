@@ -1,4 +1,4 @@
-num_episodes: 5
+num_episodes: 10
 seed: 42
 device: 'gpu'
 gpu: '3'

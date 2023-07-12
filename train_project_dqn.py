@@ -25,6 +25,8 @@ def train(config, agent, env):
                 while not done:
                     action = agent.take_action(state)
                     next_state, reward, done = env.step(action)
+                    worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
+                    reward *= env.worker_quanlity[worker_id]
                     replay_buffer.add(state, action, reward, next_state, done)
                     state = next_state
                     iteration_return += reward
@@ -58,6 +60,8 @@ def test(config, agent, env):
         while not done:
             action = agent.take_action(state, "test")
             next_state, reward, done = env.step(action)
+            worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
+            reward *= env.worker_quanlity[worker_id]
             step += 1
             if reward > 0:
                 accuracy_cnt += 1
@@ -82,7 +86,7 @@ if __name__ == "__main__":
 
 
     train_dqn_reward_list, train_dqn_loss_list = train(config, dqn_agent, env)
-    dqn_agent.save('./model/dqn_worker_agent.pt')
+    dqn_agent.save('./model/dqn_project_agent.pt')
     test_dqn_reward_list, test_dqn_reward_sum, test_dqn_accuracy = test(config, dqn_agent, env)
 
     dqn_result_dict = {
@@ -93,7 +97,7 @@ if __name__ == "__main__":
         "test_dqn_accuracy": test_dqn_accuracy
     }
 
-    with open("./result/DQN_Worker_result_dict.pickle", "wb") as fp:
+    with open("./result/DQN_Project_result_dict.pickle", "wb") as fp:
         pickle.dump(dqn_result_dict, fp)
 
     train_random_reward_list, train_random_loss_list = train(config, random_agent, env)
@@ -107,5 +111,5 @@ if __name__ == "__main__":
         "test_random_accuracy": test_random_accuracy
     }
 
-    with open("./result/RANDOM_Worker_result_dict.pickle", "wb") as fp:
+    with open("./result/RANDOM_Project_result_dict.pickle", "wb") as fp:
         pickle.dump(random_result_dict, fp)

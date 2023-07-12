@@ -7,7 +7,7 @@ gamma: 0.95
 len_category: 7
 len_sub_category: 29
 len_industry: 37
-dim: 10
+dim: 30
 learning_rate: 0.0001
 num_projects: 2501
 worker_num: 1807
