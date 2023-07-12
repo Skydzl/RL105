@@ -9,6 +9,7 @@ import time
 import yaml
 import random
 import pickle
+import numpy as np
 
 from tqdm import tqdm
 
@@ -52,25 +53,31 @@ def new_train(config, env, agent):
         iteration_return = 0
         step = 0
         env.reset()
-        
-        for worker_iter in tqdm(range(config.worker_num)):
-            # 进行一个回合
-            state, done = env.get_obs()
-            while not done:
-                action = agent.sample_action(state)
-                next_state, reward, done = env.step(action)
-                agent.memory.push((state, action, reward))
-                step += 1
-                state = next_state
-                iteration_return += reward
-                if step % config.update_fre == 0:
-                    reward_list.append(iteration_return)
-                    iteration_return = 0
-            if len(agent.memory) != 0:
-                loss = agent.update()  
-                loss_list.append(loss)
-            env.worker_index += 1
-            env.worker_list_pos = 0
+        with tqdm(total=config["worker_num"], desc='Episodes %d' % epoch) as worker_bar:
+            for worker_iter in range(config.worker_num):
+                # 进行一个回合
+                state, done = env.get_obs()
+                while not done:
+                    action = agent.sample_action(state)
+                    next_state, reward, done = env.step(action)
+                    agent.memory.push((state, action, reward))
+                    step += 1
+                    state = next_state
+                    iteration_return += reward
+                    if step % config.update_fre == 0:
+                        reward_list.append(iteration_return)
+                        iteration_return = 0
+                if len(agent.memory) != 0:
+                    loss = agent.update()  
+                    loss_list.append(loss)
+                if (worker_iter + 1) % 10 == 0:
+                    worker_bar.set_postfix({'episode': '%d' % (epoch + 1),
+                                            'worker': '%d' % (worker_iter + 1),
+                                            "loss_list": '%.3f' % np.mean(loss_list[-10: ]),
+                                            "reward_list" : '%.3f' % np.mean(reward_list[-10: ])})
+                env.worker_index += 1
+                env.worker_list_pos = 0
+                worker_bar.update(1)
 
     return reward_list, loss_list
 

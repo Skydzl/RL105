@@ -19,7 +19,7 @@ def train(config, agent, env):
         replay_buffer = ReplayBuffer(config["buffer_size"])
         iteration_return = 0
         env.reset()
-        with tqdm(total=config["worker_num"], desc='Episodes %d' % episode) as worker_iter:
+        with tqdm(total=config["worker_num"], desc='Episodes %d' % episode) as worker_bar:
             for worker_iter in range(config["worker_num"]):
                 state, done = env.get_obs()
                 while not done:
@@ -34,8 +34,15 @@ def train(config, agent, env):
                         loss_list.append(loss)
                         reward_list.append(iteration_return)
                         iteration_return = 0
+                if (worker_iter + 1) % 10 == 0:
+                    worker_bar.set_postfix({'episode': '%d' % (episode + 1),
+                                            'worker': '%d' % (worker_iter + 1),
+                                            "loss_list": '%.3f' % np.mean(loss_list[-10: ]),
+                                            "reward_list" : '%.3f' % np.mean(reward_list[-10: ])})
                 env.worker_index += 1
                 env.worker_list_pos = 0
+                worker_bar.update(1)
+                
 
     return reward_list, loss_list
 
@@ -62,75 +69,6 @@ def test(config, agent, env):
     accuracy = accuracy_cnt / step
     return reward_list, reward_sum, accuracy
 
-# def random_train():
-#     with open("./config/worker_dqn.yaml", "rb") as f:
-#         config = yaml.load(f, Loader=yaml.FullLoader)
-#     random.seed(config["seed"])
-#     np.random.seed(config["seed"])
-#     torch.manual_seed(config["seed"])
-#     replay_buffer = ReplayBuffer(config["buffer_size"])
-#     env = WorkerEnv(config)
-#     reward_list = []
-#     for episode in range(config["num_episodes"]):
-#         iteration_return = 0
-#         state, done = env.reset()
-#         # while not done:
-#         for i in tqdm(range(len(env.worker_list) - config["true_history_len"])):
-#             worker_history, action_list = state
-#             action = random.choice(action_list)
-#             next_state, reward, done = env.step(action)
-#             replay_buffer.add(state, action, reward, next_state, done)
-#             state = next_state
-#             iteration_return += reward
-#             if replay_buffer.cnt % config["update_frequency"] == 0:
-#                 # transitions = replay_buffer.sample(config["batch_size"])
-#                 # agent.update(transitions)
-#                 reward_list.append(iteration_return)
-#                 iteration_return = 0
-#             # if replay_buffer.cnt == 10000:
-#             #     break
-#             if done:
-#                 break
-#     return reward_list
-
-# def train():
-#     with open("./config/worker_dqn.yaml", "rb") as f:
-#         config = yaml.load(f, Loader=yaml.FullLoader)
-#     random.seed(config["seed"])
-#     np.random.seed(config["seed"])
-#     torch.manual_seed(config["seed"])
-#     replay_buffer = ReplayBuffer(config["buffer_size"])
-#     env = WorkerEnv()
-#     agent = WorkerAgent(config)
-#     reward_list = []
-#     for i in range(10):
-#         with tqdm(total=int(config["num_episodes"] / 10), desc='Iteration %d' % i) as pbar:
-#             for i_episode in range(int(config["num_episodes"] / 10)):
-#                 episode_return = 0
-#                 state, done = env.reset()
-#                 while not done:
-#                     action = agent.take_action(state)
-#                     next_state, reward, done = env.step(action)
-#                     worker_history, action_list = state
-#                     replay_buffer.add(state, action, reward, next_state, done)
-#                     state = next_state
-#                     episode_return += reward
-#                     if replay_buffer.cnt % config["update"] == 0:
-#                         transitions = replay_buffer.sample(config["batch_size"])
-#                         agent.update(transitions)
-#                 reward_list.append(episode_return)
-#                 if (i_episode + 1) % 10 == 0:
-#                     pbar.set_postfix({
-#                     'episode':
-#                     '%d' % (config["num_episodes"] / 10 * i + i_episode + 1),
-#                     'return':
-#                     '%.3f' % np.mean(reward_list[-10:])
-#                 })
-#                 pbar.update(1)
-#     return reward_list
-
-
-
 if __name__ == "__main__":
     with open("./config/worker_dqn.yaml", "rb") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
@@ -147,15 +85,21 @@ if __name__ == "__main__":
     dqn_agent.save('./model/dqn_agent.pt')
     test_dqn_reward_list, test_dqn_reward_sum, test_dqn_accuracy = test(config, dqn_agent, env)
 
-    train_random_reward_list, train_random_loss_list = train(config, random_agent, env)
-    test_random_reward_list, test_random_reward_sum, test_random_accuracy = test(config, random_agent, env)
-
-    result_dict = {
+    dqn_result_dict = {
         "train_dqn_reward_list": train_dqn_reward_list,
         "train_dqn_loss_list": train_dqn_loss_list,
         "test_dqn_reward_list": test_dqn_reward_list,
         "test_dqn_reward_sum": test_dqn_reward_sum,
-        "test_dqn_accuracy": test_dqn_accuracy,
+        "test_dqn_accuracy": test_dqn_accuracy
+    }
+
+    with open("./result/DQN_Worker_result_dict.pickle", "wb") as fp:
+        pickle.dump(dqn_result_dict, fp)
+
+    train_random_reward_list, train_random_loss_list = train(config, random_agent, env)
+    test_random_reward_list, test_random_reward_sum, test_random_accuracy = test(config, random_agent, env)
+
+    random_result_dict = {
         "train_random_reward_list": train_random_reward_list,
         "train_random_loss_list": train_random_loss_list,
         "test_random_reward_list": test_random_reward_list,
@@ -163,8 +107,5 @@ if __name__ == "__main__":
         "test_random_accuracy": test_random_accuracy
     }
 
-    with open("./result/NEW_DQN_RANDOM_Worker_result_dict.pickle", "wb") as fp:
-        pickle.dump(result_dict, fp)
-    # print(reward_list)
-    # plot_reward_curve(reward_list, random_list, "DQN on Worker")
-    # plot_loss_curve(loss_list, 'DQN on Worker')
+    with open("./result/RANDOM_Worker_result_dict.pickle", "wb") as fp:
+        pickle.dump(random_result_dict, fp)
