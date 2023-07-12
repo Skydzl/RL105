@@ -76,19 +76,24 @@ def new_train(config, env, agent):
 def new_test(config, env, agent):
     reward_list = []
     reward_sum = 0
+    accuracy_cnt = 0
+    step = 0
     env.test_reset()
     for worker_iter in tqdm(range(config.worker_num)):
         state, done = env.get_obs()
         while not done:
             action = agent.sample_action(state)
             next_state, reward, done = env.step(action)
+            step += 1
+            if reward > 0:
+                accuracy_cnt += 1
             state = next_state
             reward_list.append(reward)
             reward_sum += reward
         env.worker_index += 1
         env.worker_list_pos = 0
-
-    return reward_list, reward_sum
+    accuracy = accuracy_cnt / step
+    return reward_list, reward_sum, accuracy
 
 def train(config, env, agent):
     start_time = time.time()
@@ -171,7 +176,7 @@ if __name__ == "__main__":
     agent = PolicyGradientAgent(memory, config)
 
     train_policy_reward_list, train_policy_loss_list = new_train(config, env, agent)
-    test_policy_reward_list, test_policy_reward_sum = new_test(config, env, agent)
+    test_policy_reward_list, test_policy_reward_sum, test_policy_accuracy = new_test(config, env, agent)
 
 
     result_dict = {
@@ -179,6 +184,7 @@ if __name__ == "__main__":
         "train_policy_loss_list": train_policy_loss_list,
         "test_policy_reward_list": test_policy_reward_list,
         "test_policy_reward_sum": test_policy_reward_sum,
+        "test_policy_accuracy": test_policy_accuracy
     }
 
     with open("./result/Policy_Worker_result_dict.pickle", "wb") as fp:
