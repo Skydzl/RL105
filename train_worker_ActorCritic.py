@@ -107,8 +107,8 @@ if __name__ == "__main__":
         "accuracy": accuracy
     }
 
-    agent.save_model()
-    with open("./result/ActorCrict-{}.pickle".format(agent.create_time), "wb") as fp:
+    agent.save_model("worker")
+    with open("./result/worker/ActorCrict-{}.pickle".format(agent.create_time), "wb") as fp:
         pickle.dump(result_dict, fp)
 
     
@@ -124,5 +124,5 @@ if __name__ == "__main__":
         "accuracy": accuracy
     }
 
-    with open("./result/ActorCrict-random.pickle", "wb") as fp:
+    with open("./result/worker/ActorCrict-random.pickle", "wb") as fp:
         pickle.dump(result_dict, fp)

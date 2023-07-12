@@ -1,6 +1,6 @@
 num_episodes: 10
 seed: 42
-device: 'gpu'
+device: 'cpu'
 gpu: '3'
 
 update_frequency: 50

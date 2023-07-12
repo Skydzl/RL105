@@ -30,7 +30,7 @@ def train(config, agent, env):
                     action = agent.take_action(state)
                     next_state, reward, done = env.step(action)
                     worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
-                    reward *= env.worker_quanlity[worker_id]
+                    reward *= env.worker_quality[worker_id]
                     if done == False:
                         transition_dict['states'].append(state)
                         transition_dict['actions'].append(action)
@@ -77,7 +77,7 @@ def test(config, agent, env):
             action = agent.take_action(state)
             next_state, reward, done = env.step(action)
             worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
-            reward *= env.worker_quanlity[worker_id]
+            reward *= env.worker_quality[worker_id]
             step += 1
             if reward > 0:
                 accuracy_cnt += 1
@@ -111,8 +111,8 @@ if __name__ == "__main__":
         "accuracy": accuracy
     }
 
-    agent.save_model()
-    with open("./result/ActorCrict-Project-{}.pickle".format(agent.create_time), "wb") as fp:
+    agent.save_model("project")
+    with open("./result/project/ActorCrict-Project-{}.pickle".format(agent.create_time), "wb") as fp:
         pickle.dump(result_dict, fp)
 
     
@@ -128,5 +128,5 @@ if __name__ == "__main__":
         "accuracy": accuracy
     }
 
-    with open("./result/ActorCrict-Project-random.pickle", "wb") as fp:
+    with open("./result/project/ActorCrict-Project-random.pickle", "wb") as fp:
         pickle.dump(result_dict, fp)

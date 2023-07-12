@@ -104,11 +104,11 @@ class ActorCriticAgent:
 
         return actor_loss.item(), critic_loss.item()
     
-    def save_model(self):
+    def save_model(self, mode):
         actor = self.actor.state_dict()
         critic = self.critic.state_dict()
         project_encoder = self.project_encoder.state_dict()
 
         torch.save({"actor" :actor,
                     "critic": critic,
-                    "project_encoder": project_encoder}, "./model/ActorCrict-{}".format(self.create_time))
+                    "project_encoder": project_encoder}, "./model/{}/ActorCrict-{}".format(mode, self.create_time))
