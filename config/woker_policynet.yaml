@@ -1,6 +1,6 @@
 env_name: 'PolicyAgent'
 alg: 'PolicyGradient'
-epochs: 5
+epochs: 10
 ep_max_steps: 10000
 update_fre: 50
 gamma: 0.95

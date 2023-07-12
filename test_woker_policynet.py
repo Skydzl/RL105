@@ -47,9 +47,10 @@ def new_train(config, env, agent):
     # 每config.update_fre记录一次
     reward_list = []
     loss_list = []
-    step = 0
+    
     for epoch in range(config.epochs):
         iteration_return = 0
+        step = 0
         env.reset()
         
         for worker_iter in tqdm(range(config.worker_num)):
