@@ -26,7 +26,7 @@ def train(config, agent, env):
                     action = agent.take_action(state)
                     next_state, reward, done = env.step(action)
                     worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
-                    reward *= env.worker_quanlity[worker_id]
+                    reward *= env.worker_quality[worker_id]
                     replay_buffer.add(state, action, reward, next_state, done)
                     state = next_state
                     iteration_return += reward
@@ -61,7 +61,7 @@ def test(config, agent, env):
             action = agent.take_action(state, "test")
             next_state, reward, done = env.step(action)
             worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
-            reward *= env.worker_quanlity[worker_id]
+            reward *= env.worker_lity[worker_id]
             step += 1
             if reward > 0:
                 accuracy_cnt += 1

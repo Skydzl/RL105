@@ -39,7 +39,7 @@ class Config:
         
         self.worker_num = config["worker_num"]
         
-def train(config, env, agent):
+def new_train(config, env, agent):
     start_time = time.time()
     print(f"环境名：{config.env_name}, 算法名：{config.alg}")
     print("开始训练智能体......")
@@ -60,8 +60,6 @@ def train(config, env, agent):
                 while not done:
                     action = agent.sample_action(state)
                     next_state, reward, done = env.step(action)
-                    worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
-                    reward *= env.worker_quality[worker_id]
                     agent.memory.push((state, action, reward))
                     step += 1
                     state = next_state
@@ -83,7 +81,7 @@ def train(config, env, agent):
 
     return reward_list, loss_list
 
-def test(config, env, agent):
+def new_test(config, env, agent):
     reward_list = []
     reward_sum = 0
     accuracy_cnt = 0
@@ -94,8 +92,6 @@ def test(config, env, agent):
         while not done:
             action = agent.sample_action(state)
             next_state, reward, done = env.step(action)
-            worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
-            reward *= env.worker_quality[worker_id]
             step += 1
             if reward > 0:
                 accuracy_cnt += 1
@@ -107,6 +103,77 @@ def test(config, env, agent):
     accuracy = accuracy_cnt / step
     return reward_list, reward_sum, accuracy
 
+def train(config, env, agent):
+    start_time = time.time()
+    loss_list = []
+    print(f"环境名：{config.env_name}, 算法名：{config.alg}")
+    print("开始训练智能体......")
+    # 记录每个epoch的奖励
+    rewards = []
+    for epoch in range(config.epochs):
+        state, done = env.reset()
+        ep_reward = 0
+        
+        # 进行一个回合
+        for _ in range(1, config.ep_max_steps):
+            # 采样
+            action = agent.sample_action(state)
+            # 执行动作，获取下一个状态、奖励和结束状态
+            next_state, reward, done = env.step(action)
+            ep_reward += reward 
+            # 如果回合结束，则奖励为0
+            if done:
+                reward = 0
+            # 将采样的数据存起来
+            agent.memory.push((state, action, reward))
+            # 更新状态：当前状态等于下一个状态
+            state = next_state
+            if done:
+                break
+        if (epoch + 1) % 1 == 0:
+            print(f"Epochs：{epoch + 1}/{config.epochs}, Reward:{ep_reward:.2f}")
+        # 每采样几个回合就对智能体做一次更新
+        if (epoch + 1) % config.update_fre == 0:
+            loss = agent.update()  
+            loss_list.append(loss)     
+            print(f"train_loss: {loss:.2f}")          
+        rewards.append(ep_reward)
+    print('训练结束，用时：' + str(time.time() - start_time) + " s")
+    return {'episodes': range(len(rewards)), 'rewards': rewards}, loss_list
+    
+
+def random_train(config, env, agent):
+    start_time = time.time()
+    print(f"环境名：{config.env_name}, 算法名：random")
+    # 记录每个epoch的奖励
+    rewards = []
+    for epoch in range(config.epochs):
+        state, done = env.reset()
+        ep_reward = 0
+        
+        # 进行一个回合
+        for _ in range(1, config.ep_max_steps):
+            # 采样
+            action = random.choice(state[1])
+            # 执行动作，获取下一个状态、奖励和结束状态
+            next_state, reward, done = env.step(action)
+            '这里不需要乘gamma么？'
+            ep_reward += reward 
+            # 如果回合结束，则奖励为0
+            if done:
+                reward = 0
+            # 将采样的数据存起来
+            agent.memory.push((state, action, reward))
+            # 更新状态：当前状态等于下一个状态
+            state = next_state
+            if done:
+                break
+        if (epoch + 1) % 1 == 0:
+            print(f"Epochs：{epoch + 1}/{config.epochs}, Reward:{ep_reward:.2f}")   
+        rewards.append(ep_reward)
+    print('训练结束，用时：' + str(time.time() - start_time) + " s")
+    return {'episodes': range(len(rewards)), 'rewards': rewards}
+
 
 if __name__ == "__main__":
     config = Config()
@@ -116,8 +183,8 @@ if __name__ == "__main__":
     env = WorkerEnv(env_config)
     agent = PolicyGradientAgent(memory, config)
 
-    train_policy_reward_list, train_policy_loss_list = train(config, env, agent)
-    test_policy_reward_list, test_policy_reward_sum, test_policy_accuracy = test(config, env, agent)
+    train_policy_reward_list, train_policy_loss_list = new_train(config, env, agent)
+    test_policy_reward_list, test_policy_reward_sum, test_policy_accuracy = new_test(config, env, agent)
 
 
     result_dict = {
@@ -128,7 +195,7 @@ if __name__ == "__main__":
         "test_policy_accuracy": test_policy_accuracy
     }
 
-    with open("./result/Policy_Project_result_dict.pickle", "wb") as fp:
+    with open("./result/Policy_Worker_result_dict.pickle", "wb") as fp:
         pickle.dump(result_dict, fp)
     # result, loss_list = train(config, env, agent)
     # random_result = random_train(config, env, agent)
