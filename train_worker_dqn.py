@@ -139,11 +139,12 @@ if __name__ == "__main__":
 
 
     train_dqn_reward_list, train_dqn_loss_list = train(config, dqn_agent, env)
+    dqn_agent.save('./model/dqn_agent.pt')
     test_dqn_reward_list, test_dqn_reward_sum = test(config, dqn_agent, env)
 
     train_random_reward_list, train_random_loss_list = train(config, random_agent, env)
     test_random_reward_list, test_random_reward_sum = test(config, random_agent, env)
-    
+
     result_dict = {
         "train_dqn_reward_list": train_dqn_reward_list,
         "train_dqn_loss_list": train_dqn_loss_list,
@@ -155,7 +156,7 @@ if __name__ == "__main__":
         "test_random_reward_sum": test_random_reward_sum
     }
 
-    with open("./result/DQN_RANDOM_Worker_result_dict.pickle", "wb") as fp:
+    with open("./result/NEW_DQN_RANDOM_Worker_result_dict.pickle", "wb") as fp:
         pickle.dump(result_dict, fp)
     # print(reward_list)
     # plot_reward_curve(reward_list, random_list, "DQN on Worker")
