@@ -46,13 +46,17 @@ class MemoryQueue:
     
     
 def moving_average(a, window_size):
-    cumulative_sum = np.cumsum(np.insert(a, 0, 0)) 
-    middle = (cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size
-    r = np.arange(1, window_size-1, 2)
-    begin = np.cumsum(a[:window_size-1])[::2] / r
-    end = (np.cumsum(a[:-window_size:-1])[::2] / r)[::-1]
-    return middle
-    # return np.concatenate((begin, middle, end))
+    result = list()
+    for i in range(window_size, len(a)):
+        result.append(np.mean(a[i - window_size: i]))
+    return result
+    # cumulative_sum = np.cumsum(np.insert(a, 0, 0)) 
+    # middle = (cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size
+    # r = np.arange(1, window_size-1, 2)
+    # begin = np.cumsum(a[:window_size-1])[::2] / r
+    # end = (np.cumsum(a[:-window_size:-1])[::2] / r)[::-1]
+    # return middle
+    # # return np.concatenate((begin, middle, end))
 
 
 def plot_reward_curve(return_list, random_list, env_name):
@@ -87,7 +91,7 @@ def plot_loss_curve(loss_list, env_name):
     plt.title('{} Loss'.format(env_name))
     plt.show()
 
-    mv_loss = moving_average(loss_list, 99)
+    mv_loss = moving_average(loss_list, 999)
     mv_iterations = list(range(len(mv_loss)))
     plt.plot(mv_iterations, mv_loss)
     plt.xlabel('Iterations')
