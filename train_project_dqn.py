@@ -61,7 +61,7 @@ def test(config, agent, env):
             action = agent.take_action(state, "test")
             next_state, reward, done = env.step(action)
             worker_id = env.worker_index2id_dict[env.worker_index_hash[env.worker_index]]
-            reward *= env.worker_lity[worker_id]
+            reward *= env.worker_quality[worker_id]
             step += 1
             if reward > 0:
                 accuracy_cnt += 1
@@ -82,8 +82,6 @@ if __name__ == "__main__":
     dqn_agent = WorkerDQNAgent(config)
     random_agent = WorkerRandAgent(config)
     env = WorkerEnv(config)
-
-
 
     train_dqn_reward_list, train_dqn_loss_list = train(config, dqn_agent, env)
     dqn_agent.save('./model/dqn_project_agent.pt')

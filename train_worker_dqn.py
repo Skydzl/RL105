@@ -79,8 +79,6 @@ if __name__ == "__main__":
     random_agent = WorkerRandAgent(config)
     env = WorkerEnv(config)
 
-
-
     train_dqn_reward_list, train_dqn_loss_list = train(config, dqn_agent, env)
     dqn_agent.save('./model/dqn_worker_agent.pt')
     test_dqn_reward_list, test_dqn_reward_sum, test_dqn_accuracy = test(config, dqn_agent, env)
