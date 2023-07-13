@@ -61,7 +61,7 @@ def train(config, agent, env):
         episode_actor_loss_list.append([np.mean(worker_actor_loss_list), worker_actor_loss_list])
         episode_critic_loss_list.append([np.mean(worker_critic_loss_list), worker_critic_loss_list])
 
-    return episode_reward_list, episode_actor_loss_list, episode_critic_loss_list
+    return reward_episode_list, episode_reward_list, episode_actor_loss_list, episode_critic_loss_list
 
 def test(config, agent, env):
     reward_list = []
@@ -95,10 +95,11 @@ if __name__ == "__main__":
     agent = ActorCriticAgent(config)
     env = WorkerEnv(config)
     
-    train_reward_list, train_actor_loss_list, train_critic_loss_list = train(config, agent, env)
+    reward_episode_list, train_reward_list, train_actor_loss_list, train_critic_loss_list = train(config, agent, env)
     test_reward_list, test_reward_sum, accuracy = test(config, agent, env)
 
     result_dict = {
+        "reward_episode_list": reward_episode_list,
         "train_reward_list": train_reward_list,
         "train_actor_loss_list":train_actor_loss_list,
         "train_critic_loss_list":train_critic_loss_list,
@@ -114,10 +115,11 @@ if __name__ == "__main__":
     
     random_agent = ActorCriticRandomAgent(config)
 
-    train_random_reward_list, _, _ = train(config, random_agent, env)
+    reward_episode_list, train_random_reward_list, _, _ = train(config, random_agent, env)
     test_random_reward_list, test_random_reward_sum, accuracy = test(config, random_agent, env)
 
     result_dict = {
+        "reward_episode_list": reward_episode_list,
         "train_reward_list": train_random_reward_list,
         "test_reward_list": test_random_reward_list,
         "test_reward_sum": test_random_reward_sum,
