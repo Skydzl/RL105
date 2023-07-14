@@ -70,8 +70,8 @@ def plot_reward_curve(return_list, random_list, env_name):
     plt.legend()
     plt.show()
 
-    mv_return = moving_average(return_list, 1999)
-    mv_random = moving_average(random_list, 1999)
+    mv_return = moving_average(return_list, 999)
+    mv_random = moving_average(random_list, 999)
     mv_iterations = list(range(len(mv_return)))
     mv_random_iterations = list(range(len(mv_random)))
     plt.plot(mv_iterations, mv_return, color='b', label='DQN')

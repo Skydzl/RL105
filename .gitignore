@@ -4,6 +4,7 @@ result/*
 project_list.csv
 worker_quality.csv
 __pycache__/*
+.spyproject/*
 plot.ipynb
 model/*
 !README.md
