@@ -1,5 +1,6 @@
 data/entry/*
 data/project/*
+data/datacheck.ipynb
 result/*
 project_list.csv
 worker_quality.csv
@@ -10,3 +11,5 @@ model/*
 !README.md
 deprecated/*
 run.sh
+run_policynet_onserver.sh
+logs/*
