@@ -13,3 +13,4 @@ deprecated/*
 run.sh
 run_policynet_onserver.sh
 logs/*
+.DS_Store
